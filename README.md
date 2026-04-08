@@ -5,27 +5,50 @@ Agent-to-agent proxy MCP server — fetch any URL through 2M+ residential IPs, b
 [![npm](https://img.shields.io/npm/v/agentproxy?label=npm&color=CB3837)](https://npmjs.com/package/agentproxy)
 [![License](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 
-Powered by **[Novada](https://www.novada.com)** — one account, all tools.
+Powered by **[Novada](https://www.novada.com)** — sign up once, all tools from one account.
 
 ## Get Your Credentials
 
 1. Sign up at **[novada.com](https://www.novada.com)** — 30 seconds, no credit card
-2. Go to **Dashboard** and grab your credentials for each product you need:
-   - **Search** (`NOVADA_API_KEY`): Dashboard → API Keys
-   - **Fetch / Session** (`NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`): Dashboard → Residential Proxies → Endpoint Generator
-   - **Render** (`NOVADA_BROWSER_WS`): Dashboard → Browser API → Playground → copy the Puppeteer/Playwright URL
+2. From your dashboard, get the credentials for each tool you need:
+
+| Tool | Env Var(s) | Where to get it |
+|------|-----------|-----------------|
+| `agentproxy_search` | `NOVADA_API_KEY` | Dashboard → API Keys |
+| `agentproxy_fetch` / `agentproxy_session` | `NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS` | Dashboard → Residential Proxies → Endpoint Generator |
+| `agentproxy_render` [BETA] | `NOVADA_BROWSER_WS` | Dashboard → Browser API → Playground (copy the Puppeteer URL) |
+
+You don't need all of them — only set what you use.
 
 ## Install
 
+**Search only:**
 ```bash
 claude mcp add agentproxy \
   -e NOVADA_API_KEY=your_key \
-  -e NOVADA_PROXY_USER=your_proxy_username \
-  -e NOVADA_PROXY_PASS=your_proxy_password \
   -- npx -y agentproxy
 ```
 
-For the browser render tool, also add `-e NOVADA_BROWSER_WS=wss://USER-zone-browser:PASS@upg-scbr.novada.com`.
+**Fetch + Session (full proxy network):**
+```bash
+claude mcp add agentproxy \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -e NOVADA_PROXY_HOST=your_account_host \
+  -- npx -y agentproxy
+```
+
+**All tools:**
+```bash
+claude mcp add agentproxy \
+  -e NOVADA_API_KEY=your_key \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -e NOVADA_PROXY_HOST=your_account_host \
+  -- npx -y agentproxy
+```
+
+> `NOVADA_PROXY_HOST` is your account-specific proxy host from the Endpoint Generator (e.g. `abc123.vtv.na.novada.pro`). Required for reliable sticky sessions.
 
 ## Why AgentProxy
 
@@ -38,7 +61,7 @@ AI agents get blocked on 60–70% of commercial websites with standard HTTP requ
 | JS-rendered pages show blank | Browser API runs real Chromium |
 | Geo-restricted content | 195+ countries, city-level targeting |
 | Multi-step workflows need same IP | Sticky sessions — same IP across calls |
-| Need structured search results | Built-in Google/Bing via Novada |
+| Need structured search results | Built-in Google search via Novada |
 
 ## Tools
 
@@ -48,10 +71,10 @@ Fetch any URL through Novada's residential proxy. Works on Amazon, LinkedIn, Clo
 **Requires:** `NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`
 
 ```
-url        — Target URL (required)
+url        — Target URL (required, http/https only)
 country    — 2-letter code: US, DE, JP, GB, BR, ... (195+ countries)
 city       — City-level: newyork, london, tokyo, ...
-session_id — Reuse same ID to keep the same IP (letters/numbers/underscores only)
+session_id — Reuse same ID to keep the same IP (letters/numbers/underscores, no hyphens)
 format     — "markdown" (default) | "raw"
 timeout    — Seconds, 1-120 (default 60)
 ```
@@ -59,7 +82,7 @@ timeout    — Seconds, 1-120 (default 60)
 ### `agentproxy_render` [BETA]
 Render JavaScript-heavy pages using Novada's Browser API (real Chromium). Use this for SPAs, React/Vue apps, and sites that need JS to load content.
 
-**Requires:** `NOVADA_BROWSER_WS` (WebSocket URL from Dashboard → Browser API → Playground)
+**Requires:** `NOVADA_BROWSER_WS` (copy the Puppeteer/Playwright URL from Dashboard → Browser API → Playground)
 
 ```
 url       — Target URL (required)
@@ -75,7 +98,6 @@ Structured web search via Novada. Returns clean titles, URLs, descriptions — n
 
 ```
 query    — Search query (required)
-engine   — google (default) | bing | duckduckgo | yahoo | yandex
 num      — Results count, 1-20 (default 10)
 country  — Localize results (e.g. us, uk, de)
 language — Language code (e.g. en, zh, de)
@@ -111,12 +133,12 @@ agentproxy_fetch(url=..., country="JP")
 # Render a JS-heavy real estate page
 agentproxy_render(url="https://zillow.com/homes/NYC_rb/", wait_for=".list-card")
 
-# Multi-page scrape with same IP
-agentproxy_session(session_id="job001", url="https://example.com/page/1")
-agentproxy_session(session_id="job001", url="https://example.com/page/2")  # same IP
+# Multi-page scrape with same IP (no hyphens in session ID)
+agentproxy_session(session_id="job001page1", url="https://example.com/page/1")
+agentproxy_session(session_id="job001page1", url="https://example.com/page/2")
 
 # Web search
-agentproxy_search(query="AI proxy tools 2024", engine="google", num=5)
+agentproxy_search(query="AI proxy tools 2025", num=5)
 ```
 
 ## Network
@@ -124,20 +146,20 @@ agentproxy_search(query="AI proxy tools 2024", engine="google", num=5)
 | Metric | Value |
 |--------|-------|
 | Residential IPs | 2,000,000+ |
-| Live nodes | 7,500+ |
+| Live nodes | 7,000+ |
 | Countries | 195+ |
 | Device types | Android, Windows, Mac |
-| Avg response | < 2s |
 
 ## Confirmed Working
 
-✅ Amazon, LinkedIn, Cloudflare, HackerNews, GitHub, Wikipedia, BBC, CNN, Reddit, IMDB, Steam, Goodreads, and 50+ more.
+Amazon, LinkedIn, Cloudflare-protected sites, HackerNews, GitHub, Wikipedia, BBC, CNN, Reddit, IMDB, and more.
 
 ## Known Limitations
 
-- Sites requiring full JS execution (Zillow, BestBuy, Nike) → use `agentproxy_render`
-- DuckDuckGo search → intermittently blocks proxy IPs; use Google or Bing
-- Session IDs must not contain hyphens (Novada uses `-` as its username parameter delimiter)
+- Sites requiring full JS execution → use `agentproxy_render`
+- `agentproxy_render` requires a separate Browser API subscription and `NOVADA_BROWSER_WS` env var
+- Session IDs must not contain hyphens
+- For reliable sticky sessions, set `NOVADA_PROXY_HOST` to your account-specific proxy host
 
 ## License
 
