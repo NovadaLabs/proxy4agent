@@ -16,9 +16,14 @@ import {
 } from "./tools/index.js";
 import { VERSION } from "./config.js";
 
-// ─── Single API key — get yours at novada.com ─────────────────────────────────
+// ─── API Keys — both available at novada.com ─────────────────────────────────
+// NOVADA_API_KEY  → Novada Scraper API (search) + Novada Browser API (render)
+// PROXY_API_KEY   → Novada Proxy Network (fetch, session)
+//                   Future: NOVADA_API_KEY will cover this too when Novada Web
+//                   Unblocker unifies auth. For now both come from novada.com.
 
 const NOVADA_API_KEY = process.env.NOVADA_API_KEY;
+const PROXY_API_KEY = process.env.PROXY_API_KEY ?? process.env.NOVADA_API_KEY; // fallback for future unification
 
 // ─── Tool Definitions ────────────────────────────────────────────────────────
 
@@ -44,7 +49,7 @@ const TOOLS = [
   {
     name: "agentproxy_render",
     description:
-      "Render a JavaScript-heavy page using Novada's Browser API (real Chromium, full JS execution). Use this for SPAs, React/Vue apps, and sites that require JavaScript to load content — like Zillow, BestBuy, or any page that shows blank without a browser. For static/HTML pages, agentproxy_fetch is faster.",
+      "[BETA] Render a JavaScript-heavy page using Novada's Browser API (real Chromium, full JS execution). Use this for SPAs, React/Vue apps, and sites that require JavaScript to load content — like Zillow, BestBuy, or any page that shows blank without a browser. For static/HTML pages, agentproxy_fetch is faster and more reliable.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -126,32 +131,30 @@ class AgentProxyServer {
       const { name, arguments: args } = request.params;
       const raw = (args || {}) as Record<string, unknown>;
 
-      if (!NOVADA_API_KEY) {
-        return {
-          content: [{
-            type: "text" as const,
-            text: "Error: NOVADA_API_KEY is not set.\n\nGet your free API key at https://www.novada.com — sign up takes 30 seconds.\n\nThen:\n  claude mcp add agentproxy -e NOVADA_API_KEY=your_key -- npx -y agentproxy",
-          }],
-          isError: true,
-        };
-      }
-
       try {
         let result: string;
 
         switch (name) {
-          case "agentproxy_fetch":
-            result = await agentproxyFetch(validateFetchParams(raw), NOVADA_API_KEY);
+          case "agentproxy_fetch": {
+            if (!PROXY_API_KEY) return this.missingKeyError("PROXY_API_KEY", "fetch/session tools (proxy network)");
+            result = await agentproxyFetch(validateFetchParams(raw), PROXY_API_KEY);
             break;
-          case "agentproxy_render":
+          }
+          case "agentproxy_render": {
+            if (!NOVADA_API_KEY) return this.missingKeyError("NOVADA_API_KEY", "render tool (Novada Browser API)");
             result = await agentproxyRender(validateRenderParams(raw), NOVADA_API_KEY);
             break;
-          case "agentproxy_search":
+          }
+          case "agentproxy_search": {
+            if (!NOVADA_API_KEY) return this.missingKeyError("NOVADA_API_KEY", "search tool (Novada Scraper API)");
             result = await agentproxySearch(validateSearchParams(raw), NOVADA_API_KEY);
             break;
-          case "agentproxy_session":
-            result = await agentproxySession(validateSessionParams(raw), NOVADA_API_KEY);
+          }
+          case "agentproxy_session": {
+            if (!PROXY_API_KEY) return this.missingKeyError("PROXY_API_KEY", "fetch/session tools (proxy network)");
+            result = await agentproxySession(validateSessionParams(raw), PROXY_API_KEY);
             break;
+          }
           case "agentproxy_status":
             result = await agentproxyStatus();
             break;
@@ -167,18 +170,32 @@ class AgentProxyServer {
 
         return { content: [{ type: "text" as const, text: result }] };
       } catch (error) {
-        const message =
+        const rawMsg =
           error instanceof AxiosError
-            ? `HTTP ${error.response?.status || "error"}: ${error.response?.data?.msg || error.message}`
+            ? `HTTP ${error.response?.status || "error"}: ${String(error.response?.data?.msg || error.message)}`
             : error instanceof Error
               ? error.message
               : String(error);
+        // Redact API keys from any error message before surfacing to agent
+        let message = rawMsg;
+        if (NOVADA_API_KEY) message = message.replace(NOVADA_API_KEY, "***");
+        if (PROXY_API_KEY && PROXY_API_KEY !== NOVADA_API_KEY) message = message.replace(PROXY_API_KEY, "***");
         return {
           content: [{ type: "text" as const, text: `Error: ${message}` }],
           isError: true,
         };
       }
     });
+  }
+
+  private missingKeyError(envVar: string, forWhat: string) {
+    return {
+      content: [{
+        type: "text" as const,
+        text: `Error: ${envVar} is not set (required for ${forWhat}).\n\nGet your API key at https://www.novada.com — sign up is free.\n\nThen restart with:\n  claude mcp add agentproxy -e ${envVar}=your_key -- npx -y agentproxy`,
+      }],
+      isError: true,
+    };
   }
 
   async run(): Promise<void> {

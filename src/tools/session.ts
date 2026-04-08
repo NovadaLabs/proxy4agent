@@ -38,6 +38,6 @@ export function validateSessionParams(raw: Record<string, unknown>): SessionPara
     url: raw.url,
     country: raw.country as string | undefined,
     format: (raw.format as "raw" | "markdown") || "markdown",
-    timeout: raw.timeout ? Number(raw.timeout) : 30,
+    timeout: raw.timeout ? Number(raw.timeout) : 60,
   };
 }

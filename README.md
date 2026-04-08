@@ -68,7 +68,7 @@ Structured web search via Novada. Returns clean titles, URLs, descriptions — n
 
 ```
 query    — Search query (required)
-engine   — google (default) | bing | yahoo | yandex
+engine   — google (default) | bing | duckduckgo | yahoo | yandex
 num      — Results count, 1-20 (default 10)
 country  — Localize results (e.g. us, uk, de)
 language — Language code (e.g. en, zh, de)

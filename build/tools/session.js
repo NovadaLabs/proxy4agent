@@ -22,7 +22,7 @@ export function validateSessionParams(raw) {
         url: raw.url,
         country: raw.country,
         format: raw.format || "markdown",
-        timeout: raw.timeout ? Number(raw.timeout) : 30,
+        timeout: raw.timeout ? Number(raw.timeout) : 60,
     };
 }
 //# sourceMappingURL=session.js.map
