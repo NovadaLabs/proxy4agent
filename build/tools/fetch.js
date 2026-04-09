@@ -1,5 +1,6 @@
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
+import { HttpProxyAgent } from "http-proxy-agent";
 import { gunzipSync, brotliDecompressSync, inflateSync } from "zlib";
 import { PROXY_HOST, PROXY_PORT, DEFAULT_USER_AGENT } from "../config.js";
 import { htmlToMarkdown, unicodeSafeTruncate } from "../utils.js";
@@ -24,34 +25,19 @@ function buildProxyUsername(baseUser, params) {
     return username;
 }
 function decompress(buffer, encoding) {
-    // Primary: decompress according to the Content-Encoding header
-    if (encoding === "gzip") {
-        try {
-            return gunzipSync(buffer).toString("utf-8");
-        }
-        catch { /* fall through to raw */ }
+    // When the server declares an encoding, trust it — throw on failure so the retry loop fires
+    if (encoding === "gzip")
+        return gunzipSync(buffer).toString("utf-8");
+    if (encoding === "br")
+        return brotliDecompressSync(buffer).toString("utf-8");
+    if (encoding === "deflate")
+        return inflateSync(buffer).toString("utf-8");
+    // No encoding header — try gunzip as a best-effort fallback
+    // (some servers send gzip without declaring it)
+    try {
+        return gunzipSync(buffer).toString("utf-8");
     }
-    else if (encoding === "br") {
-        try {
-            return brotliDecompressSync(buffer).toString("utf-8");
-        }
-        catch { /* fall through */ }
-    }
-    else if (encoding === "deflate") {
-        try {
-            return inflateSync(buffer).toString("utf-8");
-        }
-        catch { /* fall through */ }
-    }
-    else {
-        // No encoding header or unknown — try gunzip as fallback
-        // (some servers send gzip without declaring it)
-        try {
-            return gunzipSync(buffer).toString("utf-8");
-        }
-        catch { /* not compressed */ }
-    }
-    // Raw bytes — return as UTF-8 (may be uncompressed or failed decompression)
+    catch { /* not compressed */ }
     return buffer.toString("utf-8");
 }
 export async function agentproxyFetch(params, proxyUser, proxyPass) {
@@ -61,13 +47,15 @@ export async function agentproxyFetch(params, proxyUser, proxyPass) {
     }
     const username = buildProxyUsername(proxyUser, params);
     const proxyUrl = `http://${encodeURIComponent(username)}:${encodeURIComponent(proxyPass)}@${PROXY_HOST}:${PROXY_PORT}`;
-    const agent = new HttpsProxyAgent(proxyUrl);
+    // HttpsProxyAgent for HTTPS targets (CONNECT tunnel + TLS); HttpProxyAgent for plain HTTP
+    const httpsAgent = new HttpsProxyAgent(proxyUrl);
+    const httpAgent = new HttpProxyAgent(proxyUrl);
     let lastError = null;
     for (let attempt = 1; attempt <= 2; attempt++) {
         try {
             const response = await axios.get(url, {
-                httpsAgent: agent,
-                httpAgent: agent,
+                httpsAgent: httpsAgent,
+                httpAgent: httpAgent,
                 proxy: false,
                 // arraybuffer + decompress:false = we handle decompression ourselves.
                 // axios built-in decompress conflicts with https-proxy-agent CONNECT tunnel

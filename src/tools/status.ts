@@ -2,8 +2,6 @@ import axios from "axios";
 
 // Novada node-registration service — reports live network health
 const NETWORK_STATUS_URL = "https://gateway.novada.pro/health";
-// Fallback endpoint in case the primary moves
-const NETWORK_STATUS_FALLBACK = "https://gateway.iploop.io:9443/health";
 
 interface NetworkHealth {
   status: string;
@@ -16,14 +14,11 @@ interface NetworkHealth {
 export async function agentproxyStatus(): Promise<string> {
   // Try primary endpoint, fall back silently if it fails
   let data: NetworkHealth | null = null;
-  for (const url of [NETWORK_STATUS_URL, NETWORK_STATUS_FALLBACK]) {
-    try {
-      const response = await axios.get<NetworkHealth>(url, { timeout: 10000 });
-      data = response.data;
-      break;
-    } catch {
-      // try next
-    }
+  try {
+    const response = await axios.get<NetworkHealth>(NETWORK_STATUS_URL, { timeout: 10000 });
+    data = response.data;
+  } catch {
+    // endpoint unavailable
   }
 
   if (!data) {

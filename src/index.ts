@@ -114,7 +114,7 @@ const TOOLS = [
 
 // ─── MCP Server ──────────────────────────────────────────────────────────────
 
-class AgentProxyServer {
+class ProxyVeilServer {
   private server: Server;
 
   constructor() {
@@ -190,6 +190,7 @@ class AgentProxyServer {
         // Redact credentials from any error message before surfacing to agent
         let message = rawMsg;
         if (NOVADA_API_KEY) message = message.replaceAll(NOVADA_API_KEY, "***");
+        if (NOVADA_PROXY_USER) message = message.replaceAll(NOVADA_PROXY_USER, "***");
         if (NOVADA_PROXY_PASS) message = message.replaceAll(NOVADA_PROXY_PASS, "***");
         if (NOVADA_BROWSER_WS) message = message.replaceAll(NOVADA_BROWSER_WS, "[browser-ws-redacted]");
         return {
@@ -243,7 +244,8 @@ const cliArgs = process.argv.slice(2);
 
 if (cliArgs.includes("--list-tools")) {
   for (const tool of TOOLS) {
-    console.log(`  ${tool.name} — ${tool.description.split(".")[0]}`);
+    // Split on ". " (period+space) to avoid breaking URLs like novada.com
+    console.log(`  ${tool.name} — ${tool.description.split(/\.\s/)[0]}`);
   }
   process.exit(0);
 }
@@ -285,7 +287,7 @@ Tools:
   process.exit(0);
 }
 
-const server = new AgentProxyServer();
+const server = new ProxyVeilServer();
 server.run().catch((error) => {
   console.error("Fatal error:", error);
   process.exit(1);

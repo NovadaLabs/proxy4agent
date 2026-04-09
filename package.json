@@ -10,7 +10,7 @@
     "build"
   ],
   "scripts": {
-    "build": "tsc && node -e \"require('fs').chmodSync('build/index.js', '755')\"",
+    "build": "tsc && node --input-type=commonjs -e \"require('fs').chmodSync('build/index.js', '755')\"",
     "dev": "tsc --watch",
     "inspector": "npx @modelcontextprotocol/inspector build/index.js",
     "prepublishOnly": "npm run build"
@@ -39,6 +39,7 @@
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.26.0",
     "axios": "^1.7.0",
+    "http-proxy-agent": "^7.0.0",
     "https-proxy-agent": "^9.0.0",
     "puppeteer-core": "^22.15.0"
   },

@@ -6,6 +6,21 @@
 - **Renamed: `agentproxy` → `proxy-veil`** — previous name was too generic and conflicted with `agent-proxy` on npm. `proxy-veil` is distinctive, available, and captures what the product does (veils AI agent requests behind residential IPs).
 - **CHANGELOG.md** — added to track what changed in every version going forward.
 - **`--help` text reordered** — proxy credentials listed first (core product), API key and browser WS listed after (secondary tools).
+- **`http-proxy-agent` added** — `httpAgent` now correctly uses `HttpProxyAgent` for plain HTTP targets; `httpsAgent` uses `HttpsProxyAgent` for HTTPS (CONNECT tunnel + TLS). Both were previously the same `HttpsProxyAgent` instance.
+- **`NOVADA_PROXY_PORT` env var** — replaces legacy `AGENTPROXY_PROXY_PORT` (removed). Allows overriding the proxy port if your plan uses a non-standard one.
+
+### Bug fixes
+- **NOVADA_PROXY_USER not redacted in error messages** — proxy usernames (e.g. `user123-zone-res-region-us`) appeared verbatim in 407/connection error messages. Added `replaceAll` redaction alongside the existing pass/key redaction.
+- **IPLoop fallback removed from `agentproxy_status`** — `gateway.iploop.io:9443/health` was silently called when the Novada status endpoint failed. Removed entirely; status now returns UNKNOWN cleanly if unreachable.
+- **Render timeout applied twice** — `page.goto()` and `page.waitForSelector()` each received the full timeout, so real elapsed time could be 2× the user-specified value. Fixed with a shared deadline.
+- **`decompress()` silent failure** — when a server declared `Content-Encoding: gzip` but body was undecompressable, the function fell through to returning raw binary as UTF-8. It now throws on explicitly-declared encodings (triggering the retry loop); silent fallback retained only when no header is present.
+- **Legacy `AGENTPROXY_PROXY_HOST` / `AGENTPROXY_PROXY_PORT` env vars removed** — stale after rename, undocumented.
+- **README "Why AgentProxy" heading** — renamed to "Why ProxyVeil".
+- **`agentproxy_status` + `agentproxy_session` + `agentproxy_render` URL scheme validation** — all three `validateXxxParams` functions now check `http://`/`https://` prefix at the boundary, consistent with `fetch.ts`.
+- **`agentproxy_search` country/language injection** — `country` and `language` params forwarded to API without validation; now checked against `SAFE_LOCALE` pattern.
+- **`--list-tools` split broke on URLs** — was splitting description on first `.`, which broke descriptions containing `.com` URLs. Now splits on `. ` (period + space).
+- **`node -e require(...)` in ESM package** — `build` script used CommonJS `require` in a `"type": "module"` package; fixed with `--input-type=commonjs`.
+- **Class renamed** — `AgentProxyServer` → `ProxyVeilServer`.
 
 ---
 

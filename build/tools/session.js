@@ -20,6 +20,9 @@ export function validateSessionParams(raw) {
     if (!raw.url || typeof raw.url !== "string") {
         throw new Error("url is required");
     }
+    if (!raw.url.startsWith("http://") && !raw.url.startsWith("https://")) {
+        throw new Error("url must start with http:// or https://");
+    }
     if (raw.country !== undefined) {
         if (typeof raw.country !== "string" || !SAFE_PARAM.test(raw.country)) {
             throw new Error("country must be a 2-letter ISO code (e.g. US, DE, GB)");

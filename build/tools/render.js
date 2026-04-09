@@ -11,12 +11,17 @@ export async function agentproxyRender(params, browserWsEndpoint) {
     });
     const page = await browser.newPage();
     try {
+        // Use a shared deadline so goto + waitForSelector together never exceed timeout
+        const deadline = Date.now() + timeout * 1000;
         await page.goto(url, {
             waitUntil: "domcontentloaded",
             timeout: timeout * 1000,
         });
         if (wait_for) {
-            await page.waitForSelector(wait_for, { timeout: timeout * 1000 });
+            const remaining = deadline - Date.now();
+            if (remaining <= 0)
+                throw new Error(`Timeout waiting for selector: ${wait_for}`);
+            await page.waitForSelector(wait_for, { timeout: remaining });
         }
         const html = await page.content();
         const title = await page.title();
@@ -48,6 +53,9 @@ export async function agentproxyRender(params, browserWsEndpoint) {
 export function validateRenderParams(raw) {
     if (!raw.url || typeof raw.url !== "string") {
         throw new Error("url is required");
+    }
+    if (!raw.url.startsWith("http://") && !raw.url.startsWith("https://")) {
+        throw new Error("url must start with http:// or https://");
     }
     const validFormats = ["markdown", "html", "text"];
     if (raw.format && !validFormats.includes(raw.format)) {

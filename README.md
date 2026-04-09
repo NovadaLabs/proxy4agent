@@ -52,7 +52,7 @@ claude mcp add proxy-veil \
 
 > `NOVADA_PROXY_HOST` is your account-specific proxy host from the Endpoint Generator (e.g. `abc123.vtv.na.novada.pro`). Required for reliable sticky sessions.
 
-## Why AgentProxy
+## Why ProxyVeil
 
 AI agents get blocked on 60–70% of commercial websites with standard HTTP requests. AgentProxy routes through real home devices — Android phones, Windows PCs, Macs — so your agent looks like a real user.
 

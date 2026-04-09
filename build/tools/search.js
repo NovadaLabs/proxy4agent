@@ -68,6 +68,13 @@ export function validateSearchParams(raw) {
     const num = raw.num ? Number(raw.num) : 10;
     if (num < 1 || num > 20)
         throw new Error("num must be between 1 and 20");
+    const SAFE_LOCALE = /^[a-zA-Z0-9_-]{1,10}$/;
+    if (raw.country && (typeof raw.country !== "string" || !SAFE_LOCALE.test(raw.country))) {
+        throw new Error("country must be a short locale code (e.g. us, uk, de)");
+    }
+    if (raw.language && (typeof raw.language !== "string" || !SAFE_LOCALE.test(raw.language))) {
+        throw new Error("language must be a short language code (e.g. en, zh, de)");
+    }
     return {
         query: raw.query,
         engine: raw.engine || "google",
