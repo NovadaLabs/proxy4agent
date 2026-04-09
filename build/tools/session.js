@@ -14,8 +14,8 @@ export async function agentproxySession(params, proxyUser, proxyPass) {
     }, proxyUser, proxyPass);
 }
 export function validateSessionParams(raw) {
-    if (!raw.session_id || typeof raw.session_id !== "string" || !SAFE_SESSION_ID.test(raw.session_id)) {
-        throw new Error("session_id is required — letters, numbers, underscores only (no hyphens)");
+    if (!raw.session_id || typeof raw.session_id !== "string" || raw.session_id.length > 64 || !SAFE_SESSION_ID.test(raw.session_id)) {
+        throw new Error("session_id is required — letters, numbers, underscores only, max 64 chars (no hyphens)");
     }
     if (!raw.url || typeof raw.url !== "string") {
         throw new Error("url is required");
@@ -40,4 +40,3 @@ export function validateSessionParams(raw) {
         timeout,
     };
 }
-//# sourceMappingURL=session.js.map

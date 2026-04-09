@@ -7,4 +7,3 @@ export interface SessionParams {
 }
 export declare function agentproxySession(params: SessionParams, proxyUser: string, proxyPass: string): Promise<string>;
 export declare function validateSessionParams(raw: Record<string, unknown>): SessionParams;
-//# sourceMappingURL=session.d.ts.map

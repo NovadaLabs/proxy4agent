@@ -114,18 +114,18 @@ export function validateFetchParams(raw) {
         throw new Error("url must start with http:// or https://");
     }
     if (raw.country !== undefined) {
-        if (typeof raw.country !== "string" || !SAFE_COUNTRY.test(raw.country)) {
+        if (typeof raw.country !== "string" || raw.country.length > 10 || !SAFE_COUNTRY.test(raw.country)) {
             throw new Error("country must be a 2-letter ISO code with no hyphens (e.g. US, DE, GB)");
         }
     }
     if (raw.city !== undefined) {
-        if (typeof raw.city !== "string" || !SAFE_CITY.test(raw.city)) {
-            throw new Error("city must contain only letters, numbers, underscores (e.g. newyork, london)");
+        if (typeof raw.city !== "string" || raw.city.length > 50 || !SAFE_CITY.test(raw.city)) {
+            throw new Error("city must contain only letters, numbers, underscores, max 50 chars (e.g. newyork, london)");
         }
     }
     if (raw.session_id !== undefined) {
-        if (typeof raw.session_id !== "string" || !SAFE_SESSION_ID.test(raw.session_id)) {
-            throw new Error("session_id must contain only letters, numbers, and underscores (no hyphens)");
+        if (typeof raw.session_id !== "string" || raw.session_id.length > 64 || !SAFE_SESSION_ID.test(raw.session_id)) {
+            throw new Error("session_id must contain only letters, numbers, and underscores, max 64 chars (no hyphens)");
         }
     }
     if (raw.format && raw.format !== "raw" && raw.format !== "markdown") {
@@ -144,4 +144,3 @@ export function validateFetchParams(raw) {
         timeout,
     };
 }
-//# sourceMappingURL=fetch.js.map

@@ -7,4 +7,3 @@ export interface SearchParams {
 }
 export declare function agentproxySearch(params: SearchParams, novadaApiKey: string): Promise<string>;
 export declare function validateSearchParams(raw: Record<string, unknown>): SearchParams;
-//# sourceMappingURL=search.d.ts.map

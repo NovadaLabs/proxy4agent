@@ -1,7 +1,13 @@
 import axios from "axios";
 import { NOVADA_SEARCH_URL, DEFAULT_USER_AGENT } from "../config.js";
+const SAFE_LOCALE = /^[a-zA-Z0-9_-]{1,10}$/;
 export async function agentproxySearch(params, novadaApiKey) {
     const { query, engine = "google", num = 10, country = "", language = "" } = params;
+    // Guard: validate locale params even when called directly (not via validateSearchParams)
+    if (country && !SAFE_LOCALE.test(country))
+        throw new Error("country contains invalid characters");
+    if (language && !SAFE_LOCALE.test(language))
+        throw new Error("language contains invalid characters");
     // Note: Novada Scraper API authenticates via query param (api_key), not header.
     // The key is therefore visible in server-side access logs — this is an API design
     // constraint of the current Novada endpoint. We mitigate by never including the
@@ -68,7 +74,6 @@ export function validateSearchParams(raw) {
     const num = raw.num ? Number(raw.num) : 10;
     if (!Number.isFinite(num) || num < 1 || num > 20)
         throw new Error("num must be between 1 and 20");
-    const SAFE_LOCALE = /^[a-zA-Z0-9_-]{1,10}$/;
     if (raw.country && (typeof raw.country !== "string" || !SAFE_LOCALE.test(raw.country))) {
         throw new Error("country must be a short locale code (e.g. us, uk, de)");
     }
@@ -83,4 +88,3 @@ export function validateSearchParams(raw) {
         language: raw.language || "",
     };
 }
-//# sourceMappingURL=search.js.map

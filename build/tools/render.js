@@ -61,8 +61,10 @@ export function validateRenderParams(raw) {
     if (raw.format && !validFormats.includes(raw.format)) {
         throw new Error("format must be markdown, html, or text");
     }
-    if (raw.wait_for !== undefined && typeof raw.wait_for !== "string") {
-        throw new Error("wait_for must be a CSS selector string");
+    if (raw.wait_for !== undefined) {
+        if (typeof raw.wait_for !== "string" || raw.wait_for.length > 500) {
+            throw new Error("wait_for must be a CSS selector string (max 500 chars)");
+        }
     }
     const timeout = raw.timeout ? Number(raw.timeout) : 60;
     if (!Number.isFinite(timeout) || timeout < 5 || timeout > 120)
@@ -74,4 +76,3 @@ export function validateRenderParams(raw) {
         timeout,
     };
 }
-//# sourceMappingURL=render.js.map

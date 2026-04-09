@@ -1,4 +1,4 @@
-export const VERSION = "1.4.1";
+export const VERSION = "1.4.3";
 
 // Novada Scraper API — web search
 export const NOVADA_SEARCH_URL = "https://scraperapi.novada.com/search";
@@ -7,7 +7,9 @@ export const NOVADA_SEARCH_URL = "https://scraperapi.novada.com/search";
 // NOVADA_PROXY_HOST: set to your account-specific host from Dashboard → Endpoint Generator
 //   for better reliability (especially sticky sessions). Falls back to shared host.
 export const PROXY_HOST = process.env.NOVADA_PROXY_HOST || "super.novada.pro";
-export const PROXY_PORT = Number(process.env.NOVADA_PROXY_PORT) || 7777;
+const _rawPort = Number(process.env.NOVADA_PROXY_PORT);
+export const PROXY_PORT = Number.isInteger(_rawPort) && _rawPort > 0 && _rawPort < 65536
+  ? _rawPort : 7777;
 
 export const DEFAULT_USER_AGENT =
   "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/131.0.0.0 Safari/537.36";

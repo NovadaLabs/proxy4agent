@@ -1,5 +1,27 @@
 # Changelog
 
+## v1.4.3 (2026-04-09)
+
+### What's new
+- **Real-world results in README** — live output from actual API calls: US/JP geo-targeting, sticky session confirmation (same IP across 2 requests), Amazon 1.6 MB page bypass, HackerNews full extraction, Google search results.
+
+---
+
+## v1.4.2 (2026-04-09)
+
+### Security fixes
+- **Proxy username injection via country/city** — `SAFE_PARAM` allowed hyphens; `country="us-session-injected"` silently forged proxy auth segments. All username params now use `/^[a-zA-Z0-9_]+$/` (no hyphens).
+- **NaN bypasses timeout validation** — `NaN < 1` is false, so non-numeric inputs passed range checks. Added `Number.isFinite()` guard in all validators (fetch, session, render, search).
+- **Search non-Axios errors leaked API key** — non-network errors re-thrown raw with potential API key in message. Now sanitized through the same `replaceAll` path.
+
+### Bug fixes
+- **sourceMappingURL directives in published JS** — `sourceMap: true` in tsconfig wrote dangling `//# sourceMappingURL` comments after `.map` files were excluded. Fixed: `sourceMap: false`, `declarationMap: false`.
+- **PROXY_PORT accepts out-of-range values** — `"99999"` or `"-1"` passed through silently. Added `Number.isInteger` + range check `> 0 && < 65536`.
+- **Length caps added** — `session_id` ≤ 64, `country` ≤ 10, `city` ≤ 50, `wait_for` ≤ 500 chars. Previously unbounded inputs caused cryptic 407 proxy errors.
+- **search.ts country/language validated at call site** — previously only validated in `validateSearchParams`, allowing direct callers to bypass sanitization.
+
+---
+
 ## v1.4.1 (2026-04-09)
 
 ### Security fixes

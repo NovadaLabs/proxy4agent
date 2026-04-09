@@ -121,23 +121,77 @@ timeout    — Seconds, 1-120
 ### `agentproxy_status`
 Check Novada's proxy network health — node count, device breakdown, service status.
 
+## Real-World Results
+
+These are live outputs captured from actual API calls — not fabricated.
+
+### Geo-targeting: same URL, different countries
+```
+agentproxy_fetch(url="https://httpbin.org/ip", country="US", format="raw")
+→ { "origin": "200.50.235.236" }   ← US residential IP
+
+agentproxy_fetch(url="https://httpbin.org/ip", country="JP", format="raw")
+→ { "origin": "60.85.57.175" }     ← Japan residential IP
+```
+
+### Sticky session: same IP across requests
+```
+agentproxy_session(session_id="job001", url="https://httpbin.org/ip", format="raw")
+→ { "origin": "103.135.135.168" }
+
+agentproxy_session(session_id="job001", url="https://httpbin.org/ip", format="raw")
+→ { "origin": "103.135.135.168" }  ← same IP, confirmed
+```
+
+### Amazon product page — bypassed, 1.6 MB extracted
+```
+agentproxy_fetch(url="https://www.amazon.com/dp/B0BSHF7WHW", country="US")
+→ [URL: https://www.amazon.com/dp/B0BSHF7WHW | Status: 200 | Size: 1637 KB | Country: US]
+
+  Apple 2023 MacBook Pro — M2 Pro, 16-inch, 16GB, 1TB
+  (full product page including price, reviews, specs)
+```
+
+### HackerNews front page — full content, 34 KB
+```
+agentproxy_fetch(url="https://news.ycombinator.com")
+→ [URL: https://news.ycombinator.com | Status: 200 | Size: 34 KB]
+
+  1. LittleSnitch for Linux — 752 points, 243 comments
+  2. I ported Mac OS X to the Nintendo Wii — 1590 points, 281 comments
+  3. Git commands I run before reading any code — 2054 points, 445 comments
+  ...30 stories extracted as clean markdown
+```
+
+### Web search — structured results, no HTML parsing
+```
+agentproxy_search(query="residential proxy for AI agents", num=3)
+→ Search: "residential proxy for AI agents" via GOOGLE — 3 results
+
+  1. Residential Proxies Trusted by Fortune 500 Companies
+     https://brightdata.com/proxy-types/residential-proxies
+     Access 400M+ residential proxies from 195 countries...
+
+  2. Proxies for AI Web Agents: The Complete Guide
+     https://netnut.io/proxies-for-ai-web-agents/
+     Real-user IPs that bypass even the toughest anti-bot systems...
+```
+
 ## Example: Agent Price Monitor
 
-```
-# Check Amazon price from US residential IP
+```python
+# Check Amazon price across three markets
 agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="US")
+agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="DE")
+agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="JP")
 
-# Same product, three markets
-agentproxy_fetch(url=..., country="US")
-agentproxy_fetch(url=..., country="DE")
-agentproxy_fetch(url=..., country="JP")
+# Multi-step workflow with same IP — login then scrape
+agentproxy_session(session_id="workflow01", url="https://example.com/login")
+agentproxy_session(session_id="workflow01", url="https://example.com/dashboard")
+agentproxy_session(session_id="workflow01", url="https://example.com/data")
 
-# Render a JS-heavy real estate page
+# Render a JS-heavy page (requires NOVADA_BROWSER_WS)
 agentproxy_render(url="https://zillow.com/homes/NYC_rb/", wait_for=".list-card")
-
-# Multi-page scrape with same IP (no hyphens in session ID)
-agentproxy_session(session_id="job001page1", url="https://example.com/page/1")
-agentproxy_session(session_id="job001page1", url="https://example.com/page/2")
 
 # Web search
 agentproxy_search(query="AI proxy tools 2025", num=5)

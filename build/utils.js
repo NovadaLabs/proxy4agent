@@ -40,4 +40,3 @@ export function htmlToText(html) {
         .replace(/^-\s/gm, "") // strip list bullets
         .trim();
 }
-//# sourceMappingURL=utils.js.map
