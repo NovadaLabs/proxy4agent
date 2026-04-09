@@ -1,4 +1,4 @@
-export declare const VERSION = "1.4.3";
+export declare const VERSION = "1.4.4";
 export declare const NOVADA_SEARCH_URL = "https://scraperapi.novada.com/search";
 export declare const PROXY_HOST: string;
 export declare const PROXY_PORT: number;
