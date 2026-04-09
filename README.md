@@ -6,8 +6,9 @@
 [![npm downloads](https://img.shields.io/npm/dw/proxy-veil?label=downloads&color=blue)](https://npmjs.com/package/proxy-veil)
 [![License: MIT](https://img.shields.io/badge/license-MIT-green)](LICENSE)
 [![Node.js](https://img.shields.io/badge/node-%3E%3D18-brightgreen)](https://nodejs.org)
+[![Smithery](https://smithery.ai/badge/proxy-veil)](https://smithery.ai/server/proxy-veil)
 
-Works with **Claude Code**, **Cursor**, **Windsurf**, and any MCP-compatible AI agent. Powered by **[Novada](https://www.novada.com)**.
+Works with **Claude Code**, **Cursor**, **Windsurf**, **Cline**, **Continue**, and any MCP-compatible AI agent. Powered by **[Novada](https://www.novada.com)**.
 
 ---
 
@@ -28,7 +29,9 @@ AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests
 
 ## Providers
 
-ProxyVeil works with **any HTTP proxy**. Novada is the built-in default with deepest integration — automatic country/city/session targeting. For other providers, use the generic adapter.
+ProxyVeil works with **any HTTP proxy**. Novada is the built-in default with the deepest integration. BrightData, Smartproxy, and Oxylabs have dedicated adapters with full auto-targeting. Any other provider works via the generic adapter.
+
+**Priority:** Novada → BrightData → Smartproxy → Oxylabs → Generic. First configured provider wins.
 
 ### Novada (default — recommended)
 
@@ -43,26 +46,56 @@ claude mcp add proxy-veil \
 
 Get credentials: **[novada.com](https://www.novada.com)** → Dashboard → Residential Proxies → Endpoint Generator
 
-### Generic HTTP Proxy — bring your own provider
+### BrightData
 
-Set `PROXY_URL` to use **any HTTP proxy** — BrightData, Smartproxy, Oxylabs, IPRoyal, or your own infrastructure. Novada takes priority if both are set.
+Full integration: automatic country/city/session targeting via BrightData's username-suffix format.
 
 ```bash
-# BrightData
 claude mcp add proxy-veil \
-  -e PROXY_URL="http://username-country-us:password@zproxy.lum-superproxy.io:22225" \
+  -e BRIGHTDATA_USER="brd-customer-abc123-zone-residential" \
+  -e BRIGHTDATA_PASS=your_password \
   -- npx -y proxy-veil
+```
 
-# Smartproxy
+Get credentials: **brightdata.com** → Proxies & Scraping → Residential → Access Parameters
+
+> `BRIGHTDATA_USER` is your full username including zone (e.g. `brd-customer-abc123-zone-residential`). Optional: `BRIGHTDATA_HOST` (default: `zproxy.lum-superproxy.io`), `BRIGHTDATA_PORT` (default: `22225`).
+
+### Smartproxy
+
+Full integration: automatic country/city/session targeting.
+
+```bash
 claude mcp add proxy-veil \
-  -e PROXY_URL="http://username-country-US:password@gate.smartproxy.com:10001" \
+  -e SMARTPROXY_USER=your_username \
+  -e SMARTPROXY_PASS=your_password \
   -- npx -y proxy-veil
+```
 
-# Oxylabs
+Get credentials: **smartproxy.com** → Dashboard → Residential → Endpoint Generator
+
+> Optional: `SMARTPROXY_HOST` (default: `gate.smartproxy.com`), `SMARTPROXY_PORT` (default: `10001`).
+
+### Oxylabs
+
+Full integration: automatic country/city/session targeting.
+
+```bash
 claude mcp add proxy-veil \
-  -e PROXY_URL="http://username:password@pr.oxylabs.io:7777" \
+  -e OXYLABS_USER=your_username \
+  -e OXYLABS_PASS=your_password \
   -- npx -y proxy-veil
+```
 
+Get credentials: **oxylabs.io** → Dashboard → Residential Proxies → Access Details
+
+> Optional: `OXYLABS_HOST` (default: `pr.oxylabs.io`), `OXYLABS_PORT` (default: `7777`).
+
+### Generic HTTP Proxy — any other provider
+
+Set `PROXY_URL` to use IPRoyal, your own infrastructure, or any standard HTTP proxy.
+
+```bash
 # IPRoyal
 claude mcp add proxy-veil \
   -e PROXY_URL="http://username:password@geo.iproyal.com:12321" \
@@ -74,17 +107,15 @@ claude mcp add proxy-veil \
   -- npx -y proxy-veil
 ```
 
-> **Note:** With the generic adapter, encode country/city/session targeting directly in your proxy URL per your provider's format. `country`, `city`, and `session_id` tool parameters are ignored — they require a provider-specific adapter (Novada supports them natively).
+> **Note:** With the generic adapter, encode country/city/session targeting directly in your proxy URL per your provider's format. `country`, `city`, and `session_id` tool parameters are logged as warnings and not forwarded.
 
-| Feature | Novada | Generic HTTP |
-|---------|--------|-------------|
-| Auto country targeting | ✓ | manual (encode in URL) |
-| Auto city targeting | ✓ | manual (encode in URL) |
-| Sticky sessions | ✓ | manual (encode in URL) |
-| Works with BrightData | — | ✓ |
-| Works with Smartproxy | — | ✓ |
-| Works with Oxylabs | — | ✓ |
-| Works with any HTTP proxy | — | ✓ |
+| Feature | Novada | BrightData | Smartproxy | Oxylabs | Generic HTTP |
+|---------|--------|------------|------------|---------|-------------|
+| Auto country targeting | ✓ | ✓ | ✓ | ✓ | manual |
+| Auto city targeting | ✓ | ✓ | ✓ | ✓ | manual |
+| Sticky sessions | ✓ | ✓ | ✓ | ✓ | manual |
+| Built-in search API | ✓ | — | — | — | — |
+| Browser API (JS render) | ✓ | — | — | — | — |
 
 ---
 
@@ -136,12 +167,52 @@ claude mcp add proxy-veil \
 
 ---
 
+## Compatible With
+
+ProxyVeil works with any MCP-compatible AI client:
+
+| Client | Install method |
+|--------|---------------|
+| **Claude Code** | `claude mcp add proxy-veil -e ... -- npx -y proxy-veil` |
+| **Cursor** | Settings → MCP → Add server → `npx -y proxy-veil` |
+| **Windsurf** | MCP config → `npx -y proxy-veil` |
+| **Cline** | MCP settings → command: `npx`, args: `["-y", "proxy-veil"]` |
+| **Continue** | `.continue/config.json` → mcpServers |
+| **Smithery** | [smithery.ai/server/proxy-veil](https://smithery.ai/server/proxy-veil) |
+| **Any MCP client** | stdio transport, `npx -y proxy-veil` |
+
+**Claude Code** example (copy-paste ready):
+```bash
+claude mcp add proxy-veil \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -- npx -y proxy-veil
+```
+
+**Cursor / Windsurf / Cline** — add to your MCP config:
+```json
+{
+  "mcpServers": {
+    "proxy-veil": {
+      "command": "npx",
+      "args": ["-y", "proxy-veil"],
+      "env": {
+        "NOVADA_PROXY_USER": "your_username",
+        "NOVADA_PROXY_PASS": "your_password"
+      }
+    }
+  }
+}
+```
+
+---
+
 ## Tools
 
 ### `agentproxy_fetch`
-Fetch any URL through Novada's residential proxy network. Works on Amazon, LinkedIn, Cloudflare-protected pages, and most anti-bot-protected sites.
+Fetch any URL through a residential proxy. Works on Amazon, LinkedIn, Cloudflare-protected pages, and most anti-bot-protected sites.
 
-**Requires:** `NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`
+**Requires:** Any proxy provider — Novada (`NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`), BrightData, Smartproxy, Oxylabs, or `PROXY_URL`
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -157,13 +228,14 @@ Fetch any URL through Novada's residential proxy network. Works on Amazon, Linke
 ### `agentproxy_session`
 Sticky session fetch — every call with the same `session_id` uses the same residential IP. Essential for login flows, paginated scraping, and price monitoring across pages.
 
-**Requires:** `NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`
+**Requires:** Any proxy provider — Novada (`NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS`), BrightData, Smartproxy, Oxylabs, or `PROXY_URL`
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `session_id` | string | required | Unique ID — reuse to keep same IP (no hyphens, max 64 chars) |
 | `url` | string | required | Target URL |
 | `country` | string | — | 2-letter country code |
+| `city` | string | — | City-level targeting: `newyork`, `london`, `tokyo`... |
 | `format` | string | `markdown` | `markdown` or `raw` |
 | `timeout` | number | `60` | Timeout in seconds (1–120) |
 
@@ -258,6 +330,33 @@ agentproxy_search(query="residential proxy for AI agents", num=3)
      Real-user IPs that bypass even the toughest anti-bot systems...
 ```
 
+### Browser render — React SPA, full JS execution
+```
+agentproxy_render(url="https://react.dev", format="markdown")
+→ [URL: https://react.dev | Title: React | Size: 266 KB | Rendered: yes (Browser API)]
+
+  React v19.2
+
+  The library for web and native user interfaces
+
+  ## Create user interfaces from components
+  React lets you build user interfaces out of individual pieces called components.
+  Create your own React components like Thumbnail, LikeButton, and Video.
+  Then combine them into entire screens, pages, and apps.
+  ...
+```
+
+### Browser render — wait_for selector on HackerNews
+```
+agentproxy_render(url="https://news.ycombinator.com", wait_for=".athing")
+→ [URL: https://news.ycombinator.com | Title: Hacker News | Size: 34 KB | Rendered: yes (Browser API)]
+
+  1. LittleSnitch for Linux — 834 points, 285 comments
+  2. Help Keep Thunderbird Alive — 138 points, 77 comments
+  3. I ported Mac OS X to the Nintendo Wii — 1638 points
+  ...
+```
+
 ---
 
 ## Example Workflows
@@ -334,7 +433,7 @@ agentproxy_render(url="https://app.example.com/dashboard", wait_for=".data-table
 | [`http-proxy-agent`](https://npmjs.com/package/http-proxy-agent) | `^7.0` | HTTP proxy routing — plain HTTP targets through proxy |
 | [`puppeteer-core`](https://npmjs.com/package/puppeteer-core) | `^22.15` | Browser API — WebSocket connection to Novada's real Chromium cloud |
 
-No heavy runtime dependencies. Total install size: ~52 KB unpacked.
+Lightweight core. Package size: ~52 KB (excluding `node_modules`). `puppeteer-core` is the largest dependency but bundles no browser — it connects to Novada's remote Chromium.
 
 ---
 

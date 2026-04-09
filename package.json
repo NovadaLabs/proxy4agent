@@ -1,6 +1,6 @@
 {
   "name": "proxy-veil",
-  "version": "1.4.6",
+  "version": "1.5.0",
   "description": "MCP server for AI agents — residential proxy fetch, geo-targeting, sticky sessions, and web search. Bypass anti-bot systems invisibly. Powered by Novada.",
   "type": "module",
   "bin": {
@@ -10,7 +10,8 @@
     "build/**/*.js",
     "build/**/*.d.ts",
     "README.md",
-    "CHANGELOG.md"
+    "CHANGELOG.md",
+    "smithery.yaml"
   ],
   "scripts": {
     "build": "tsc && node --input-type=commonjs -e \"require('fs').chmodSync('build/index.js', '755')\"",
@@ -26,16 +27,31 @@
     "residential-proxy",
     "agent-proxy",
     "ai-agents",
-    "agent-to-agent",
     "web-scraping",
     "anti-bot",
+    "cloudflare-bypass",
     "geo-targeting",
+    "sticky-session",
     "novada",
+    "brightdata",
+    "smartproxy",
+    "oxylabs",
+    "puppeteer",
+    "web-fetch",
     "claude",
-    "cursor"
+    "cursor",
+    "windsurf"
   ],
   "author": "Novada <support@novada.com>",
   "license": "MIT",
+  "homepage": "https://github.com/Goldentrii/agentproxy#readme",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Goldentrii/agentproxy.git"
+  },
+  "bugs": {
+    "url": "https://github.com/Goldentrii/agentproxy/issues"
+  },
   "engines": {
     "node": ">=18.0.0"
   },

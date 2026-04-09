@@ -90,6 +90,7 @@ const TOOLS = [
         session_id: { type: "string", description: "Unique session ID — reuse the same value to keep the same IP (letters, numbers, underscores only — no hyphens)" },
         url:        { type: "string", description: "The URL to fetch" },
         country:    { type: "string", description: "2-letter country code" },
+        city:       { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
         format:     { type: "string", enum: ["markdown", "raw"], default: "markdown" },
         timeout:    { type: "number", default: 60, description: "Timeout in seconds" },
       },
@@ -211,7 +212,7 @@ class ProxyVeilServer {
           if (user) message = message.replaceAll(user, "***");
         }
         if (NOVADA_API_KEY)    message = message.replaceAll(NOVADA_API_KEY, "***");
-        if (NOVADA_BROWSER_WS) message = message.replaceAll(NOVADA_BROWSER_WS, "[browser-ws-redacted]");
+        if (NOVADA_BROWSER_WS) message = message.replaceAll(NOVADA_BROWSER_WS, "***");
 
         return {
           content: [{ type: "text" as const, text: `Error: ${message}` }],

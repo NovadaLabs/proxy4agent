@@ -36,7 +36,7 @@ export const GenericHttpAdapter: ProxyAdapter = {
   lastVerified: "2026-04-09",
   capabilities: { country: false, city: false, sticky: false },
   credentialDocs: "Set PROXY_URL=http://user:pass@host:port",
-  sensitiveFields: ["pass"],
+  sensitiveFields: ["pass", "proxyUrl"],
 
   loadCredentials(env) {
     const raw = env.PROXY_URL;

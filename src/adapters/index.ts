@@ -1,6 +1,9 @@
 import type { ProxyAdapter, ProxyCredentials } from "./types.js";
 import { NovadaAdapter } from "./novada.js";
 import { GenericHttpAdapter } from "./generic.js";
+import { BrightDataAdapter } from "./brightdata.js";
+import { SmartproxyAdapter } from "./smartproxy.js";
+import { OxylabsAdapter } from "./oxylabs.js";
 
 export type { ProxyAdapter, ProxyCredentials, ProxyRequestParams, AdapterCapabilities } from "./types.js";
 
@@ -16,11 +19,11 @@ export type { ProxyAdapter, ProxyCredentials, ProxyRequestParams, AdapterCapabil
  *   3. Nothing else changes
  */
 const ADAPTERS: ProxyAdapter[] = [
-  NovadaAdapter,        // Phase 1 — default, deepest integration
-  GenericHttpAdapter,   // Phase 2 — PROXY_URL=http://user:pass@host:port (any provider)
-  // BrightDataAdapter, // Phase 3
-  // SmartproxyAdapter, // Phase 4
-  // OxylabsAdapter,    // Phase 4
+  NovadaAdapter,        // Always first — default, deepest integration
+  BrightDataAdapter,    // BRIGHTDATA_USER + BRIGHTDATA_PASS
+  SmartproxyAdapter,    // SMARTPROXY_USER + SMARTPROXY_PASS
+  OxylabsAdapter,       // OXYLABS_USER + OXYLABS_PASS
+  GenericHttpAdapter,   // Always last — PROXY_URL fallback (no auto-targeting)
 ];
 
 export interface ResolvedAdapter {

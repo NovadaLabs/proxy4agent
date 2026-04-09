@@ -1,6 +1,31 @@
 # Changelog
 
-## v1.4.6 (2026-04-09)
+## v1.5.0 (2026-04-09)
+
+### Phase 6 — MCP registry listings
+
+- **`smithery.yaml`** added — Smithery auto-discovers the server from this file. Full config schema covers all 5 providers (Novada, BrightData, Smartproxy, Oxylabs, Generic). No env var is required — each is optional, and Smithery's UI will surface them cleanly.
+- **`package.json` keywords expanded** — added `brightdata`, `smartproxy`, `oxylabs`, `cloudflare-bypass`, `sticky-session`, `windsurf`, `web-fetch` for npm discovery and registry indexing.
+- **`package.json` metadata** — added `homepage`, `repository`, `bugs` fields (required by most registries).
+- **`smithery.yaml` in `files`** — included in the published npm tarball.
+- **Smithery badge** added to README.
+- **Compatible With section** added — install instructions for Claude Code, Cursor, Windsurf, Cline, Continue, and Smithery. JSON config block for non-Claude clients.
+
+### Phase 5 — agentproxy_render live verification
+
+- **End-to-end test confirmed** — real Chromium session via Novada Browser API.
+- **React.dev** (266 KB JS-heavy SPA): full page rendered, navigation, components, code examples extracted cleanly.
+- **HackerNews with `wait_for=".athing"`**: selector waited, all 30 stories present in output.
+- **httpbin.org/html**: basic connection + markdown extraction confirmed.
+- **README updated** — live render results added to Real-World Results section.
+
+### Phases 3 & 4 — BrightData, Smartproxy, Oxylabs adapters
+
+- **`BrightDataAdapter`** — dedicated adapter for BrightData (formerly Luminati). Set `BRIGHTDATA_USER` + `BRIGHTDATA_PASS`. Auto-encodes country, city, session into BrightData's username-suffix format (`-country-XX`, `-city-CITY`, `-sid-ID`). Optional `BRIGHTDATA_HOST` / `BRIGHTDATA_PORT`.
+- **`SmartproxyAdapter`** — dedicated adapter for Smartproxy. Set `SMARTPROXY_USER` + `SMARTPROXY_PASS`. Country encoded as `-country-XX` (uppercase). Optional `SMARTPROXY_HOST` / `SMARTPROXY_PORT` (default: `gate.smartproxy.com:10001`).
+- **`OxylabsAdapter`** — dedicated adapter for Oxylabs. Set `OXYLABS_USER` + `OXYLABS_PASS`. Country encoded as `-cc-XX`, session as `-sessid-ID`. Optional `OXYLABS_HOST` / `OXYLABS_PORT` (default: `pr.oxylabs.io:7777`).
+- **Adapter priority** — Novada → BrightData → Smartproxy → Oxylabs → Generic HTTP. First configured wins. Novada is always first.
+- **README Providers section** — updated with dedicated install sections and a full capability comparison table for all 5 providers.
 
 ### Phase 2 — Generic HTTP Proxy adapter
 
@@ -39,7 +64,7 @@
 ### Bug fixes
 - **sourceMappingURL directives in published JS** — `sourceMap: true` in tsconfig wrote dangling `//# sourceMappingURL` comments after `.map` files were excluded. Fixed: `sourceMap: false`, `declarationMap: false`.
 - **PROXY_PORT accepts out-of-range values** — `"99999"` or `"-1"` passed through silently. Added `Number.isInteger` + range check `> 0 && < 65536`.
-- **Length caps added** — `session_id` ≤ 64, `country` ≤ 10, `city` ≤ 50, `wait_for` ≤ 500 chars. Previously unbounded inputs caused cryptic 407 proxy errors.
+- **Length caps added** — `session_id` ≤ 64, `country` ≤ 10, `city` ≤ 50, `wait_for` ≤ 200 chars. Previously unbounded inputs caused cryptic 407 proxy errors.
 - **search.ts country/language validated at call site** — previously only validated in `validateSearchParams`, allowing direct callers to bypass sanitization.
 
 ---

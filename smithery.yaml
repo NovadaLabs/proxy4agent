@@ -1,0 +1,87 @@
+# ProxyVeil — Smithery configuration
+# Smithery uses this file to list and launch the server on its platform.
+# https://smithery.ai
+
+startCommand:
+  type: stdio
+  configSchema:
+    type: object
+    description: "ProxyVeil MCP server configuration. At minimum, provide one proxy provider's credentials."
+    properties:
+      NOVADA_PROXY_USER:
+        type: string
+        description: "Novada residential proxy username. Get from novada.com → Dashboard → Residential Proxies → Endpoint Generator."
+        secret: true
+      NOVADA_PROXY_PASS:
+        type: string
+        description: "Novada residential proxy password."
+        secret: true
+      NOVADA_PROXY_HOST:
+        type: string
+        description: "Account-specific proxy host (e.g. abc123.vtv.na.novada.pro). Required for reliable sticky sessions. Defaults to shared load balancer."
+      NOVADA_PROXY_PORT:
+        type: string
+        description: "Novada proxy port. Default: 7777."
+      NOVADA_API_KEY:
+        type: string
+        description: "Novada Scraper API key for agentproxy_search. Get from novada.com → Dashboard → API Keys."
+        secret: true
+      NOVADA_BROWSER_WS:
+        type: string
+        description: "Novada Browser API WebSocket URL for agentproxy_render (real Chromium). Get from novada.com → Dashboard → Browser API → Playground."
+        secret: true
+      BRIGHTDATA_USER:
+        type: string
+        description: "BrightData full username including zone (e.g. brd-customer-abc123-zone-residential). Alternative to Novada."
+        secret: true
+      BRIGHTDATA_PASS:
+        type: string
+        description: "BrightData proxy password."
+        secret: true
+      BRIGHTDATA_HOST:
+        type: string
+        description: "BrightData proxy host. Default: zproxy.lum-superproxy.io."
+      BRIGHTDATA_PORT:
+        type: string
+        description: "BrightData proxy port. Default: 22225."
+      SMARTPROXY_USER:
+        type: string
+        description: "Smartproxy username. Alternative to Novada."
+        secret: true
+      SMARTPROXY_PASS:
+        type: string
+        description: "Smartproxy password."
+        secret: true
+      SMARTPROXY_HOST:
+        type: string
+        description: "Smartproxy proxy host. Default: gate.smartproxy.com."
+      SMARTPROXY_PORT:
+        type: string
+        description: "Smartproxy proxy port. Default: 10001."
+      OXYLABS_USER:
+        type: string
+        description: "Oxylabs username. Alternative to Novada."
+        secret: true
+      OXYLABS_PASS:
+        type: string
+        description: "Oxylabs password."
+        secret: true
+      OXYLABS_HOST:
+        type: string
+        description: "Oxylabs proxy host. Default: pr.oxylabs.io."
+      OXYLABS_PORT:
+        type: string
+        description: "Oxylabs proxy port. Default: 7777."
+      PROXY_URL:
+        type: string
+        description: "Generic HTTP proxy URL (http://user:pass@host:port). Works with any provider — IPRoyal, your own infrastructure, etc."
+        secret: true
+    required: []
+  commandFunction: |-
+    (config) => ({
+      command: "npx",
+      args: ["-y", "proxy-veil"],
+      env: Object.fromEntries(
+        Object.entries(config).filter(([, v]) => v !== undefined && v !== "")
+      )
+    })

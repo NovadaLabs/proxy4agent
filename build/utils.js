@@ -16,6 +16,7 @@ export function htmlToMarkdown(html) {
     return html
         .replace(/<script[\s\S]*?<\/script>/gi, "")
         .replace(/<style[\s\S]*?<\/style>/gi, "")
+        .replace(/<noscript[\s\S]*?<\/noscript>/gi, "")
         .replace(/<br\s*\/?>/gi, "\n")
         .replace(/<\/p>/gi, "\n\n")
         .replace(/<\/h[1-6]>/gi, "\n\n")

@@ -1,6 +1,7 @@
 import { agentproxyFetch } from "./fetch.js";
-// No hyphens in any proxy username param — Novada (and most providers) use `-` as segment delimiter.
-const SAFE_PARAM = /^[a-zA-Z0-9_]+$/;
+// No hyphens in any proxy username param — providers use `-` as segment delimiter.
+const SAFE_COUNTRY = /^[a-zA-Z0-9_]+$/;
+const SAFE_CITY = /^[a-zA-Z0-9_]+$/;
 const SAFE_SESSION_ID = /^[a-zA-Z0-9_]+$/;
 export async function agentproxySession(params, adapter, credentials) {
     // Session fetch is a regular fetch with session_id locked in
@@ -8,6 +9,7 @@ export async function agentproxySession(params, adapter, credentials) {
         url: params.url,
         session_id: params.session_id,
         country: params.country,
+        city: params.city,
         format: params.format || "markdown",
         timeout: params.timeout,
     }, adapter, credentials);
@@ -23,9 +25,17 @@ export function validateSessionParams(raw) {
         throw new Error("url must start with http:// or https://");
     }
     if (raw.country !== undefined) {
-        if (typeof raw.country !== "string" || raw.country.length > 10 || !SAFE_PARAM.test(raw.country)) {
+        if (typeof raw.country !== "string" || raw.country.length > 10 || !SAFE_COUNTRY.test(raw.country)) {
             throw new Error("country must be a 2-letter ISO code with no hyphens (e.g. US, DE, GB)");
         }
+    }
+    if (raw.city !== undefined) {
+        if (typeof raw.city !== "string" || raw.city.length > 50 || !SAFE_CITY.test(raw.city)) {
+            throw new Error("city must contain only letters, numbers, underscores, max 50 chars (e.g. newyork, london)");
+        }
+    }
+    if (raw.format && raw.format !== "raw" && raw.format !== "markdown") {
+        throw new Error("format must be 'raw' or 'markdown'");
     }
     const timeout = raw.timeout ? Number(raw.timeout) : 60;
     if (!Number.isFinite(timeout) || timeout < 1 || timeout > 120) {
@@ -35,6 +45,7 @@ export function validateSessionParams(raw) {
         session_id: raw.session_id,
         url: raw.url,
         country: raw.country,
+        city: raw.city,
         format: raw.format || "markdown",
         timeout,
     };

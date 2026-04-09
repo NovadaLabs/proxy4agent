@@ -3,6 +3,7 @@ export interface SessionParams {
     session_id: string;
     url: string;
     country?: string;
+    city?: string;
     format?: "raw" | "markdown";
     timeout?: number;
 }

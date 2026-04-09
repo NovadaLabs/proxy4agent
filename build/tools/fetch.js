@@ -18,12 +18,20 @@ function decompress(buffer, encoding) {
         return brotliDecompressSync(buffer).toString("utf-8");
     if (encoding === "deflate")
         return inflateSync(buffer).toString("utf-8");
-    // No encoding header — try gunzip as a best-effort fallback
-    // (some servers send gzip without declaring it)
+    // No encoding header — probe common encodings as best-effort fallback
+    // (some servers send compressed data without declaring it)
     try {
         return gunzipSync(buffer).toString("utf-8");
     }
-    catch { /* not compressed */ }
+    catch { /* not gzip */ }
+    try {
+        return brotliDecompressSync(buffer).toString("utf-8");
+    }
+    catch { /* not brotli */ }
+    try {
+        return inflateSync(buffer).toString("utf-8");
+    }
+    catch { /* not deflate */ }
     return buffer.toString("utf-8");
 }
 export async function agentproxyFetch(params, adapter, credentials) {

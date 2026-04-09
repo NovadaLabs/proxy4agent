@@ -1,5 +1,8 @@
 import { NovadaAdapter } from "./novada.js";
 import { GenericHttpAdapter } from "./generic.js";
+import { BrightDataAdapter } from "./brightdata.js";
+import { SmartproxyAdapter } from "./smartproxy.js";
+import { OxylabsAdapter } from "./oxylabs.js";
 /**
  * Registered proxy adapters in priority order.
  *
@@ -12,11 +15,11 @@ import { GenericHttpAdapter } from "./generic.js";
  *   3. Nothing else changes
  */
 const ADAPTERS = [
-    NovadaAdapter, // Phase 1 — default, deepest integration
-    GenericHttpAdapter, // Phase 2 — PROXY_URL=http://user:pass@host:port (any provider)
-    // BrightDataAdapter, // Phase 3
-    // SmartproxyAdapter, // Phase 4
-    // OxylabsAdapter,    // Phase 4
+    NovadaAdapter, // Always first — default, deepest integration
+    BrightDataAdapter, // BRIGHTDATA_USER + BRIGHTDATA_PASS
+    SmartproxyAdapter, // SMARTPROXY_USER + SMARTPROXY_PASS
+    OxylabsAdapter, // OXYLABS_USER + OXYLABS_PASS
+    GenericHttpAdapter, // Always last — PROXY_URL fallback (no auto-targeting)
 ];
 /**
  * Resolve which proxy adapter to use based on available environment variables.

@@ -1,4 +1,4 @@
-export const VERSION = "1.4.6";
+export const VERSION = "1.5.0";
 
 // Novada Scraper API — web search
 export const NOVADA_SEARCH_URL = "https://scraperapi.novada.com/search";
