@@ -1,40 +1,32 @@
 ---
 name: proxy4agent
 description: Residential proxy for AI agents — fetch any URL through 2M+ real IPs, bypass anti-bot, geo-target, sticky sessions.
-version: 1.5.3
+version: 1.6.2
 metadata:
   openclaw:
     requires:
       anyBins: [node, npx]
-      env:
-        - NOVADA_PROXY_USER
-        - NOVADA_PROXY_PASS
-        - NOVADA_API_KEY
-        - NOVADA_BROWSER_WS
-        - BRIGHTDATA_USER
-        - BRIGHTDATA_PASS
-        - SMARTPROXY_USER
-        - SMARTPROXY_PASS
-        - OXYLABS_USER
-        - OXYLABS_PASS
-        - PROXY_URL
     primaryEnv: NOVADA_PROXY_USER
     always: false
     homepage: https://github.com/Goldentrii/proxy4agent
     os: [macos, linux, windows]
     install:
       - kind: node
-        formula: proxy-veil@1.6.0
-        bins: [proxy4agent]
+        formula: bestproxy4agents@1.6.2
+        bins: [bestproxy4agents]
 ---
 
-# proxy4agent
+# Proxy4Agent
 
 Residential proxy MCP server for AI agents. Route HTTP requests through 2M+ real home devices to bypass anti-bot systems, geo-target by country or city, and maintain sticky sessions.
 
+**npm package:** `bestproxy4agents` | **GitHub:** [Goldentrii/proxy4agent](https://github.com/Goldentrii/proxy4agent)
+
 ## Setup
 
-Install as an MCP server:
+You only need credentials for ONE provider. Novada is the default and recommended provider.
+
+### Option 1: Novada (recommended)
 
 ```bash
 claude mcp add proxy4agent \
@@ -43,34 +35,28 @@ claude mcp add proxy4agent \
   -- npx -y bestproxy4agents
 ```
 
-Or with any other proxy provider:
+Get credentials: [novada.com](https://www.novada.com) → Dashboard → Residential Proxies (30 seconds, no credit card).
+
+### Option 2: Any HTTP proxy
 
 ```bash
-# BrightData
-claude mcp add proxy4agent \
-  -e BRIGHTDATA_USER="brd-customer-abc-zone-residential" \
-  -e BRIGHTDATA_PASS=your_password \
-  -- npx -y bestproxy4agents
-
-# Smartproxy
-claude mcp add proxy4agent \
-  -e SMARTPROXY_USER=your_username \
-  -e SMARTPROXY_PASS=your_password \
-  -- npx -y bestproxy4agents
-
-# Oxylabs
-claude mcp add proxy4agent \
-  -e OXYLABS_USER=your_username \
-  -e OXYLABS_PASS=your_password \
-  -- npx -y bestproxy4agents
-
-# Any HTTP proxy
 claude mcp add proxy4agent \
   -e PROXY_URL="http://user:pass@host:port" \
   -- npx -y bestproxy4agents
 ```
 
-Get Novada credentials: [novada.com](https://www.novada.com) (30 seconds, no credit card).
+Works with BrightData, Smartproxy, Oxylabs, IPRoyal, or any standard HTTP proxy. Encode targeting in the URL per your provider's format.
+
+### Optional additional credentials
+
+These are NOT required. Only set them if you need the specific feature:
+
+- `NOVADA_API_KEY` — enables `agentproxy_search` (Google search via Novada Scraper API)
+- `NOVADA_BROWSER_WS` — enables `agentproxy_render` (JS rendering via Novada Browser API)
+
+## Privacy note
+
+All HTTP requests are routed through your chosen proxy provider's residential network. Do not send sensitive internal URLs, API keys, or personally identifiable information through the proxy. The proxy provider can see request URLs and response content in transit. Use only for public web content.
 
 ## Tools
 
@@ -98,7 +84,7 @@ Structured Google search. Returns titles, URLs, descriptions as clean JSON.
 agentproxy_search(query="residential proxy for AI", num=5, country="us")
 ```
 
-Requires: `NOVADA_API_KEY`
+Requires: `NOVADA_API_KEY` (optional — only if you need search)
 
 ### agentproxy_render
 Render JS-heavy pages with real Chromium (SPAs, React/Vue apps).
@@ -107,24 +93,10 @@ Render JS-heavy pages with real Chromium (SPAs, React/Vue apps).
 agentproxy_render(url="https://react.dev", wait_for=".main-content", format="markdown")
 ```
 
-Requires: `NOVADA_BROWSER_WS`
+Requires: `NOVADA_BROWSER_WS` (optional — only if you need JS rendering)
 
 ### agentproxy_status
 Check proxy network health. No credentials needed.
-
-## Providers
-
-Priority: Novada > BrightData > Smartproxy > Oxylabs > Generic HTTP.
-
-All providers support automatic country/city/session targeting except Generic (encode manually in URL).
-
-| Provider | Env vars | Auto targeting |
-|----------|----------|---------------|
-| Novada | `NOVADA_PROXY_USER` + `NOVADA_PROXY_PASS` | Yes |
-| BrightData | `BRIGHTDATA_USER` + `BRIGHTDATA_PASS` | Yes |
-| Smartproxy | `SMARTPROXY_USER` + `SMARTPROXY_PASS` | Yes |
-| Oxylabs | `OXYLABS_USER` + `OXYLABS_PASS` | Yes |
-| Generic | `PROXY_URL` | No (manual) |
 
 ## When to use proxy4agent
 
