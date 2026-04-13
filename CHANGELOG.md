@@ -1,5 +1,42 @@
 # Changelog
 
+## v1.9.0 (2026-04-13)
+
+### New tool: `agentproxy_batch_fetch`
+
+- Fetch 2-20 URLs concurrently through residential proxy with up to 5 parallel requests (default 3).
+- Returns `{ok, data: {requested, succeeded, failed, results[]}, meta: {latency_ms, concurrency, quota}}`.
+- Each result has `{url, ok, status_code?, content?, size_bytes?, error?, latency_ms}`.
+- Individual URL failures are captured in `results[].error` — the batch itself always returns `ok: true`.
+- `validateBatchFetchParams` — validates 2-20 URLs, concurrency 1-5, input injection guards.
+
+### Quota/cost metadata stub (`QuotaMeta`)
+
+- All 7 tools now return `meta.quota: { credits_estimated, note }` in their success responses.
+- Credit estimates: `fetch` = 1, `session` = 1 (+2 if `verify_sticky`), `extract` = 1, `search` = 1, `status` = 1, `render` = 5, `batch_fetch` = N (one per URL).
+- Enables cost-aware agents to track consumption. Not real billing data — stub only.
+- `QuotaMeta` interface added to `src/types.ts`.
+
+### `agentproxy_session` description update
+
+- Added warning: `verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds.`
+
+## v1.8.0 (2026-04-13)
+
+### Agent-first output format
+
+- **Structured JSON responses** — all 6 tools now return `{ok, tool, data, meta}` envelope instead of formatted prose strings. Agents can `JSON.parse()` responses directly without text parsing.
+- **`src/types.ts`** — shared `ProxySuccessResponse`, `ProxyErrorResponse`, `ProxyErrorCode` types.
+- **`agentproxy_fetch`** — returns `data.{url, status_code, content, content_type, size_bytes}` + `meta.{latency_ms, country, session_id, truncated}`.
+- **`agentproxy_search`** — returns `data.{query, engine, count, results[]}` where each result is `{title, url, snippet}`.
+- **`agentproxy_extract`** — returns `data.{url, fields}` as a key-value map.
+- **`agentproxy_render`** — returns `data.{url, content, format}`.
+- **`agentproxy_session`** — wraps fetch result, adds `verify_sticky` param. When `verify_sticky:true`, makes two httpbin.org/ip calls and sets `meta.session_verified`.
+- **`agentproxy_status`** — rewrote to do live proxy connectivity check via httpbin.org/ip instead of hitting broken gateway endpoint. Returns `data.{provider, version, capabilities, connectivity.{status, verified_via, proxy_ip, latency_ms}}`.
+- **Centralized error classification** (`classifyError`) — maps axios errors to typed `ProxyErrorCode` with `agent_instruction` and `retry_after_seconds`. Error responses are also structured JSON.
+- **Agent-first tool descriptions** — all 6 descriptions updated with WHEN TO USE / USE INSTEAD / ON FAILURE decision trees.
+- **Concurrent render limit** — now returns structured JSON error instead of plain text.
+
 ## v1.5.0 (2026-04-09)
 
 ### Phase 6 — MCP registry listings

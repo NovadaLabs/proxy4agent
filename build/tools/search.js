@@ -23,6 +23,7 @@ export async function agentproxySearch(params, novadaApiKey) {
     if (language)
         searchParams.set("language", language);
     const requestUrl = `${NOVADA_SEARCH_URL}?${searchParams.toString()}`;
+    const startTime = Date.now();
     let response;
     try {
         response = await axios.get(requestUrl, {
@@ -45,24 +46,32 @@ export async function agentproxySearch(params, novadaApiKey) {
         }
         throw new Error(sanitize(String(err instanceof Error ? err.message : err)));
     }
+    const latency_ms = Date.now() - startTime;
     const data = response.data;
     if (data.code && data.code !== 200 && data.code !== 0) {
         throw new Error(`Novada search error (${data.code}): ${String(data.msg || "unknown")}`);
     }
     const rawResults = data.data?.organic_results || data.organic_results || data.data?.results || data.results || [];
-    const results = rawResults.slice(0, num);
-    if (!results.length) {
-        return `No results found for: "${query}"`;
-    }
-    const lines = [
-        `Search: "${query}" via ${engine.toUpperCase()} — ${results.length} results\n`,
-        ...results.map((r, i) => {
-            const url = r.redirection_link || r.url || r.link || "N/A";
-            const desc = r.description || r.snippet || "";
-            return `${i + 1}. **${r.title || "Untitled"}**\n   ${url}\n   ${desc}`;
-        }),
-    ];
-    return lines.join("\n");
+    const results = rawResults.slice(0, num).map(r => ({
+        title: r.title || "Untitled",
+        url: r.redirection_link || r.url || r.link || "",
+        snippet: r.description || r.snippet || "",
+    }));
+    const result = {
+        ok: true,
+        tool: "agentproxy_search",
+        data: {
+            query,
+            engine,
+            count: results.length,
+            results,
+        },
+        meta: {
+            latency_ms,
+            quota: { credits_estimated: 1, note: "Check dashboard.novada.com for real-time balance" },
+        },
+    };
+    return JSON.stringify(result);
 }
 export function validateSearchParams(raw) {
     if (!raw.query || typeof raw.query !== "string") {

@@ -4,6 +4,42 @@ import { HttpProxyAgent } from "http-proxy-agent";
 import { gunzipSync, brotliDecompressSync, inflateSync } from "zlib";
 import { DEFAULT_USER_AGENT } from "../config.js";
 import { htmlToMarkdown, unicodeSafeTruncate } from "../utils.js";
+const QUOTA_NOTE = "Check dashboard.novada.com for real-time balance";
+// ─── In-process response cache ───────────────────────────────────────────────
+// Eliminates duplicate proxy credits when agents re-fetch the same URL.
+// Keyed by (url + format + country). Session-pinned requests are NEVER cached
+// (stickiness implies same-IP routing — caching would break that guarantee).
+// TTL defaults to 300s. Set PROXY4AGENT_CACHE_TTL_SECONDS=0 to disable.
+const DEFAULT_CACHE_TTL_SECONDS = 300;
+const MAX_CACHE_ENTRIES = 200;
+const _responseCache = new Map();
+/** Returns the configured TTL in seconds. 0 = cache disabled. */
+export function getCacheTtl() {
+    const raw = Number(process.env.PROXY4AGENT_CACHE_TTL_SECONDS);
+    return Number.isFinite(raw) && raw >= 0 ? raw : DEFAULT_CACHE_TTL_SECONDS;
+}
+/** Cache key: url + format + country (country affects what you receive back). */
+export function makeCacheKey(url, format, country) {
+    return `${url}|${format}|${country ?? ""}`;
+}
+/** Remove all expired entries. */
+function pruneExpired() {
+    const now = Date.now();
+    for (const [key, entry] of _responseCache) {
+        if (entry.expires_at <= now)
+            _responseCache.delete(key);
+    }
+}
+/** Evict the oldest insertion when at capacity after pruning. */
+function evictOldest() {
+    const firstKey = (_responseCache.keys().next().value);
+    if (firstKey !== undefined)
+        _responseCache.delete(firstKey);
+}
+/** Clear the entire cache (useful for tests and manual cache invalidation). */
+export function clearResponseCache() {
+    _responseCache.clear();
+}
 // Input validation patterns — prevent proxy username injection.
 // No hyphens: Novada uses `-` as segment delimiter; other adapters have similar constraints.
 // These patterns are intentionally strict — adapters may further restrict via their own format.
@@ -39,6 +75,24 @@ export async function agentproxyFetch(params, adapter, credentials) {
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
         throw new Error("URL must start with http:// or https://");
     }
+    // ── Cache lookup ────────────────────────────────────────────────────────────
+    // Skip cache when session_id is set: sticky sessions imply same-IP routing,
+    // so two agents with different session IDs would wrongly share cached content.
+    const ttl = getCacheTtl();
+    const cacheKey = !params.session_id && ttl > 0
+        ? makeCacheKey(url, format, params.country)
+        : null;
+    if (cacheKey) {
+        const hit = _responseCache.get(cacheKey);
+        if (hit && hit.expires_at > Date.now()) {
+            const serveStart = Date.now();
+            const parsed = JSON.parse(hit.payload);
+            parsed.meta.cache_hit = true;
+            parsed.meta.cache_age_seconds = Math.floor((Date.now() - hit.cached_at) / 1000);
+            parsed.meta.latency_ms = Date.now() - serveStart; // ~0ms — reflects cache serve time, not proxy latency
+            return JSON.stringify(parsed);
+        }
+    }
     // Warn if targeting params are requested but the active adapter doesn't support them
     const unsupported = [];
     if (params.country && !adapter.capabilities.country)
@@ -48,19 +102,14 @@ export async function agentproxyFetch(params, adapter, credentials) {
     if (params.session_id && !adapter.capabilities.sticky)
         unsupported.push(`session_id/sticky (not supported by ${adapter.displayName})`);
     if (unsupported.length) {
-        // Surface as a non-fatal note in the output rather than an error
-        // so the fetch still proceeds — the params are simply ignored by buildProxyUrl
         console.error(`[proxy4agents] Warning: ${unsupported.join(", ")}. Switch to Novada for full targeting support.`);
     }
     const proxyUrl = adapter.buildProxyUrl(credentials, params);
     // HttpsProxyAgent for HTTPS targets (CONNECT tunnel + TLS); HttpProxyAgent for plain HTTP
     const httpsAgent = new HttpsProxyAgent(proxyUrl);
     const httpAgent = new HttpProxyAgent(proxyUrl);
-    // Capability warning text to prepend to successful response
-    const capWarning = unsupported.length
-        ? `⚠ Warning: ${unsupported.join(", ")}. These parameters were ignored.\n\n`
-        : "";
     let lastError = null;
+    const startTime = Date.now();
     for (let attempt = 1; attempt <= 2; attempt++) {
         try {
             const response = await axios.get(url, {
@@ -82,6 +131,7 @@ export async function agentproxyFetch(params, adapter, credentials) {
                 maxContentLength: 50 * 1024 * 1024,
                 maxRedirects: 5,
             });
+            const latency_ms = Date.now() - startTime;
             const encoding = response.headers["content-encoding"];
             const contentType = response.headers["content-type"];
             const body = decompress(Buffer.from(response.data), encoding);
@@ -91,17 +141,48 @@ export async function agentproxyFetch(params, adapter, credentials) {
             const finalOutput = truncated
                 ? unicodeSafeTruncate(output, 100_000) + "\n\n[... truncated — page is large]"
                 : output;
-            const meta = [
-                `URL: ${url}`,
-                `Status: ${response.status}`,
-                `Size: ${(body.length / 1024).toFixed(0)} KB`,
-                params.country ? `Country: ${params.country.toUpperCase()}` : "",
-                params.session_id ? `Session: ${params.session_id}` : "",
-                truncated ? "Truncated: yes" : "",
-            ]
-                .filter(Boolean)
-                .join(" | ");
-            return `${capWarning}[${meta}]\n\n${finalOutput}`;
+            const result = {
+                ok: true,
+                tool: "agentproxy_fetch",
+                data: {
+                    url,
+                    status_code: response.status,
+                    content: finalOutput,
+                    content_type: contentType || "unknown",
+                    size_bytes: body.length,
+                    warnings: unsupported.length ? unsupported.map(u => `Ignored param: ${u}`) : undefined,
+                },
+                meta: {
+                    latency_ms,
+                    country: params.country,
+                    session_id: params.session_id,
+                    truncated,
+                    quota: { credits_estimated: 1, note: QUOTA_NOTE },
+                    cache_hit: false,
+                },
+            };
+            // Remove undefined fields from data
+            if (!result.data.warnings)
+                delete result.data.warnings;
+            if (!result.meta.country)
+                delete result.meta.country;
+            if (!result.meta.session_id)
+                delete result.meta.session_id;
+            // ── Store in cache ──────────────────────────────────────────────────────
+            if (cacheKey) {
+                if (_responseCache.size >= MAX_CACHE_ENTRIES) {
+                    pruneExpired();
+                    if (_responseCache.size >= MAX_CACHE_ENTRIES)
+                        evictOldest();
+                }
+                const now = Date.now();
+                _responseCache.set(cacheKey, {
+                    payload: JSON.stringify(result),
+                    expires_at: now + ttl * 1000,
+                    cached_at: now,
+                });
+            }
+            return JSON.stringify(result);
         }
         catch (err) {
             lastError = err instanceof Error ? err : new Error(String(err));

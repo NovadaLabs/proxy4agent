@@ -1,10 +1,12 @@
 import puppeteer from "puppeteer-core";
 import { htmlToMarkdown, htmlToText, unicodeSafeTruncate } from "../utils.js";
+const QUOTA_NOTE = "Check dashboard.novada.com for real-time balance";
 export async function agentproxyRender(params, browserWsEndpoint) {
     const { url, format = "markdown", wait_for, timeout = 60 } = params;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
         throw new Error("URL must start with http:// or https://");
     }
+    const startTime = Date.now();
     const browser = await puppeteer.connect({
         browserWSEndpoint: browserWsEndpoint,
         defaultViewport: { width: 1366, height: 768 },
@@ -25,7 +27,6 @@ export async function agentproxyRender(params, browserWsEndpoint) {
                 await page.waitForSelector(wait_for, { timeout: remaining });
             }
             const html = await page.content();
-            const title = await page.title();
             const content = format === "html" ? html
                 : format === "text" ? htmlToText(html)
                     : htmlToMarkdown(html);
@@ -33,17 +34,22 @@ export async function agentproxyRender(params, browserWsEndpoint) {
             const finalContent = truncated
                 ? unicodeSafeTruncate(content, 100_000) + "\n\n[... truncated — rendered page is large]"
                 : content;
-            const size = (html.length / 1024).toFixed(0);
-            const meta = [
-                `URL: ${url}`,
-                `Title: ${title}`,
-                `Size: ${size} KB`,
-                "Rendered: yes (Browser API)",
-                truncated ? "Truncated: yes" : "",
-            ]
-                .filter(Boolean)
-                .join(" | ");
-            return `[${meta}]\n\n${finalContent}`;
+            const latency_ms = Date.now() - startTime;
+            const result = {
+                ok: true,
+                tool: "agentproxy_render",
+                data: {
+                    url,
+                    content: finalContent,
+                    format,
+                },
+                meta: {
+                    latency_ms,
+                    truncated,
+                    quota: { credits_estimated: 5, note: "Browser API is metered separately — " + QUOTA_NOTE },
+                },
+            };
+            return JSON.stringify(result);
         }
         finally {
             // Always close the page to avoid server-side session leak (billed by session-second)

@@ -2,8 +2,8 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { AxiosError } from "axios";
-import { agentproxyFetch, validateFetchParams, agentproxySearch, validateSearchParams, agentproxySession, validateSessionParams, agentproxyRender, validateRenderParams, agentproxyExtract, validateExtractParams, agentproxyStatus, } from "./tools/index.js";
+import axios from "axios";
+import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxySession, validateSessionParams, agentproxyRender, validateRenderParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyStatus, } from "./tools/index.js";
 import { resolveAdapter, listAdapters } from "./adapters/index.js";
 import { VERSION, NPM_PACKAGE } from "./config.js";
 // ─── Provider Resolution ─────────────────────────────────────────────────────
@@ -22,11 +22,71 @@ const MAX_CONCURRENT_RENDERS = (() => {
     return Number.isInteger(raw) && raw > 0 && raw <= 20 ? raw : 3;
 })();
 let activeRenders = 0;
+// ─── Error Classification ─────────────────────────────────────────────────────
+function classifyError(err) {
+    const ax = axios.isAxiosError(err);
+    const status = ax ? err.response?.status : undefined;
+    const msg = err instanceof Error ? err.message : String(err);
+    if (ax && status === 429)
+        return { ok: false, error: {
+                code: "RATE_LIMITED", message: "HTTP 429 — rate limited",
+                recoverable: true,
+                agent_instruction: "Wait 5 seconds and retry. Consider reducing request frequency.",
+                retry_after_seconds: 5
+            } };
+    if (ax && status && status >= 400 && status < 500)
+        return { ok: false, error: {
+                code: "BOT_DETECTION_SUSPECTED",
+                message: `HTTP ${status} — request blocked by target`,
+                recoverable: true,
+                agent_instruction: "Try agentproxy_render (real browser). Or retry with a different country/session_id."
+            } };
+    if (msg.includes("timeout") || msg.includes("ECONNABORTED"))
+        return { ok: false, error: {
+                code: "TIMEOUT", message: "Request timed out",
+                recoverable: true,
+                agent_instruction: "Increase the timeout parameter or retry. For JS-heavy pages, use agentproxy_render.",
+                retry_after_seconds: 2
+            } };
+    // DNS failure — hostname not found. Check BEFORE TLS patterns (some proxies wrap DNS errors in SSL messages).
+    if (msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN") || msg.includes("getaddrinfo"))
+        return { ok: false, error: {
+                code: "NETWORK_ERROR", message: "DNS resolution failed — hostname not found",
+                recoverable: false,
+                agent_instruction: "The hostname could not be resolved. Verify the URL is correct and the domain exists.",
+            } };
+    if (msg.includes("TLS") || msg.includes("SSL") || msg.includes("socket disconnect") || msg.includes("secure TLS") || msg.includes("certificate") || msg.includes("issuer cert"))
+        return { ok: false, error: {
+                code: "TLS_ERROR", message: "TLS/SSL connection failed",
+                recoverable: true,
+                agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render.",
+                retry_after_seconds: 2
+            } };
+    if (msg.includes("No proxy provider") || msg.includes("not configured"))
+        return { ok: false, error: {
+                code: "PROVIDER_NOT_CONFIGURED", message: msg,
+                recoverable: false,
+                agent_instruction: "Set NOVADA_PROXY_USER and NOVADA_PROXY_PASS env vars and restart the MCP server."
+            } };
+    // Input validation errors — these come from validateXxxParams before any network call
+    const INPUT_ERROR_PHRASES = ["is required", "must be", "must start with", "must contain", "letters, numbers", "max 64", "max 50", "between 1 and"];
+    if (INPUT_ERROR_PHRASES.some(p => msg.includes(p)))
+        return { ok: false, error: {
+                code: "INVALID_INPUT", message: msg,
+                recoverable: false,
+                agent_instruction: "Fix the input parameters and retry. Check the tool's inputSchema for valid values."
+            } };
+    return { ok: false, error: {
+            code: "UNKNOWN_ERROR", message: msg,
+            recoverable: true,
+            agent_instruction: "Retry the request. Check agentproxy_status for network health."
+        } };
+}
 // ─── Tool Definitions ────────────────────────────────────────────────────────
 const TOOLS = [
     {
         name: "agentproxy_fetch",
-        description: "Fetch any URL through a residential proxy network (2M+ IPs, 195 countries, anti-bot bypass). Works on Amazon, LinkedIn, Cloudflare-protected pages, and most commercial sites. Use agentproxy_render instead for JavaScript-heavy pages that need a real browser.",
+        description: "Fetch any URL through residential proxy (2M+ IPs, 195 countries, anti-bot bypass). Returns structured JSON with ok, data.content, data.status_code, meta.latency_ms, and meta.cache_hit.\n\nWHEN TO USE: Static/HTML pages, Amazon, LinkedIn, news sites, most commercial sites.\nUSE agentproxy_render INSTEAD IF: Page requires JavaScript to load (SPAs, React/Vue apps, dynamic feeds).\nUSE agentproxy_extract INSTEAD IF: You need structured fields (title, price, rating) not raw content.\nON FAILURE: If error.code is BOT_DETECTION_SUSPECTED → retry with agentproxy_render. If TLS_ERROR → retry with a different country parameter.\nCACHING: Repeated calls to the same URL+format+country are served from in-process cache (default TTL 300s). meta.cache_hit=true means no proxy credit was used. Sessions with session_id are never cached.",
         inputSchema: {
             type: "object",
             properties: {
@@ -41,8 +101,24 @@ const TOOLS = [
         },
     },
     {
+        name: "agentproxy_batch_fetch",
+        description: "Fetch multiple URLs concurrently through residential proxy. Returns structured JSON with per-URL results including ok/error status. Up to 20 URLs, up to 5 concurrent.\n\nWHEN TO USE: Scraping lists of URLs from search results, product catalogs, competitor pages.\nUSE agentproxy_fetch INSTEAD FOR: Single URLs — lower overhead.\nON FAILURE: Individual URL failures are captured in results[].error — the batch itself succeeds even if some URLs fail.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                urls: { type: "array", items: { type: "string" }, description: "2-20 URLs to fetch, each must start with http(s)://" },
+                country: { type: "string", description: "2-letter country code for all requests (e.g. US, DE, JP)" },
+                session_id: { type: "string", description: "Sticky session ID — reuse same IP for all URLs in the batch (letters, numbers, underscores only)" },
+                format: { type: "string", enum: ["markdown", "raw"], default: "markdown", description: "markdown strips HTML; raw returns full HTML" },
+                timeout: { type: "number", default: 60, description: "Per-URL timeout in seconds (1-120)" },
+                concurrency: { type: "number", default: 3, minimum: 1, maximum: 5, description: "Max concurrent fetches (1-5, default 3)" },
+            },
+            required: ["urls"],
+        },
+    },
+    {
         name: "agentproxy_render",
-        description: "[BETA] Render a JavaScript-heavy page using Novada's Browser API (real Chromium, full JS execution). Use this for SPAs, React/Vue apps, and sites that require JavaScript to load content. Requires NOVADA_BROWSER_WS env var. For static/HTML pages, agentproxy_fetch is faster.",
+        description: "[BETA] Render a JavaScript-heavy page using real Chromium (Novada Browser API). Returns structured JSON with ok, data.content. Requires NOVADA_BROWSER_WS env var.\n\nWHEN TO USE: SPAs, React/Vue apps, infinite scroll, pages that require JS to load content.\nUSE agentproxy_fetch INSTEAD FOR: Static HTML pages — it is 3-5x faster.\nON FAILURE: If error.code is TIMEOUT → increase timeout. If PROVIDER_NOT_CONFIGURED → set NOVADA_BROWSER_WS.",
         inputSchema: {
             type: "object",
             properties: {
@@ -56,7 +132,7 @@ const TOOLS = [
     },
     {
         name: "agentproxy_search",
-        description: "Structured web search via Novada (Google). Returns titles, URLs, and descriptions — no HTML parsing needed. Best for finding pages and factual queries. For reading a specific URL, use agentproxy_fetch instead.",
+        description: "Structured web search via Google (Novada). Returns JSON with ok, data.results as array of {title, url, snippet}. No HTML parsing needed — results are pre-structured.\n\nWHEN TO USE: Finding pages by topic, factual queries, discovering URLs to then fetch.\nUSE agentproxy_fetch INSTEAD FOR: Reading a specific URL you already have.\nON FAILURE: If error.code is PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY.",
         inputSchema: {
             type: "object",
             properties: {
@@ -71,7 +147,7 @@ const TOOLS = [
     },
     {
         name: "agentproxy_extract",
-        description: "Extract structured data from any URL through a residential proxy. Fetches the page and extracts named fields (title, price, description, rating, author, date, image, links, headings, etc.) using meta tags, Open Graph, JSON-LD, and HTML patterns. Returns clean key-value output — no HTML parsing needed by the agent.",
+        description: "Extract structured fields (title, price, rating, author, etc.) from any URL via residential proxy. Returns JSON with ok, data.fields as key-value map. Uses Open Graph, JSON-LD, and HTML heuristics.\n\nWHEN TO USE: Product pages, articles, listings where you need specific fields not raw content.\nUSE agentproxy_fetch INSTEAD IF: You need full page content, not specific fields.\nAUTO-ESCALATION: Set render_fallback:true to automatically retry via real browser (agentproxy_render) if the proxy fetch fails with TLS_ERROR or bot detection. Costs 5 credits if escalated.\nON FAILURE without render_fallback: If TLS_ERROR or BOT_DETECTION_SUSPECTED → retry with render_fallback:true.",
         inputSchema: {
             type: "object",
             properties: {
@@ -81,13 +157,14 @@ const TOOLS = [
                 city: { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
                 session_id: { type: "string", description: "Reuse same ID to keep the same IP across calls" },
                 timeout: { type: "number", default: 60, description: "Timeout in seconds (1-120)" },
+                render_fallback: { type: "boolean", default: false, description: "Auto-retry via real browser (agentproxy_render) if proxy fetch fails with TLS or bot-detection error. Requires NOVADA_BROWSER_WS. Costs 5 credits if triggered." },
             },
             required: ["url", "fields"],
         },
     },
     {
         name: "agentproxy_session",
-        description: "Fetch a URL with a sticky session — the same residential IP is used for every call with the same session_id. Use this for multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.",
+        description: "Fetch a URL with a sticky session — same residential IP reused across calls with the same session_id. Returns structured JSON. Use verify_sticky:true to confirm the session held.\n\nWHEN TO USE: Multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.\nNOTE: Sticky sessions are best-effort — infrastructure may not guarantee 100% IP consistency. Use verify_sticky:true to confirm.\nNOTE: verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds. Only use it when you need to confirm IP consistency before a multi-step workflow.\nON FAILURE: If SESSION_STICKINESS_FAILED → regenerate session_id or accept best-effort behavior.",
         inputSchema: {
             type: "object",
             properties: {
@@ -97,13 +174,29 @@ const TOOLS = [
                 city: { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
                 format: { type: "string", enum: ["markdown", "raw"], default: "markdown" },
                 timeout: { type: "number", default: 60, description: "Timeout in seconds (1-120)" },
+                verify_sticky: { type: "boolean", default: false, description: "Make a second httpbin.org/ip call with same session to verify IP consistency" },
             },
             required: ["session_id", "url"],
         },
     },
     {
+        name: "agentproxy_map",
+        description: "Crawl a URL and return all internal links found on the page. Returns structured JSON with data.internal_urls array. Useful for discovering pages before batch-fetching them.\n\nWHEN TO USE: Before a batch scraping job — call agentproxy_map first to discover URLs, then agentproxy_batch_fetch to scrape them.\nUSE agentproxy_fetch INSTEAD IF: You only need the content of a single specific URL.\nNOTE: This is a shallow map (single page). For deep crawls, call agentproxy_map iteratively on discovered URLs.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                url: { type: "string", description: "The URL to crawl (domain root recommended for broadest coverage)" },
+                limit: { type: "number", default: 50, description: "Max internal URLs to return (10-200)" },
+                include_external: { type: "boolean", default: false, description: "Include off-domain links in the response" },
+                country: { type: "string", description: "2-letter country code for geo-targeting" },
+                timeout: { type: "number", default: 60, description: "Timeout in seconds (1-120)" },
+            },
+            required: ["url"],
+        },
+    },
+    {
         name: "agentproxy_status",
-        description: "Check proxy network health — live node count, device types, active provider, service status. Use before starting a large scraping workflow to confirm the network is healthy.",
+        description: "Check proxy connectivity and provider health. Returns structured JSON with ok, data.connectivity.status (HEALTHY/DEGRADED/UNAVAILABLE) and data.connectivity.proxy_ip (verified via live proxy call).\n\nWHEN TO USE: Before starting a large scraping workflow, or to diagnose proxy failures.\nNOTE: Live connectivity check — makes one proxy request to httpbin.org/ip on every call.",
         inputSchema: {
             type: "object",
             properties: {},
@@ -133,12 +226,27 @@ class Proxy4AgentsServer {
                         result = await agentproxyFetch(validateFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
+                    case "agentproxy_batch_fetch": {
+                        if (!proxyContext)
+                            return this.missingProxyError();
+                        result = await agentproxyBatchFetch(validateBatchFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        break;
+                    }
                     case "agentproxy_render": {
                         if (!NOVADA_BROWSER_WS)
                             return this.missingBrowserWsError();
                         if (activeRenders >= MAX_CONCURRENT_RENDERS) {
+                            const errResp = {
+                                ok: false,
+                                error: {
+                                    code: "RATE_LIMITED",
+                                    message: `Too many concurrent renders (limit: ${MAX_CONCURRENT_RENDERS})`,
+                                    recoverable: true,
+                                    agent_instruction: `Wait for an active render to finish before starting another. Override limit with PROXY4AGENT_MAX_RENDERS env var.`,
+                                },
+                            };
                             return {
-                                content: [{ type: "text", text: `Error: Too many concurrent renders (limit: ${MAX_CONCURRENT_RENDERS}). Wait for an active render to finish before starting another. Override with PROXY4AGENT_MAX_RENDERS env var.` }],
+                                content: [{ type: "text", text: JSON.stringify(errResp, null, 2) }],
                                 isError: true,
                             };
                         }
@@ -160,7 +268,8 @@ class Proxy4AgentsServer {
                     case "agentproxy_extract": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyExtract(validateExtractParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await agentproxyExtract(validateExtractParams(raw), proxyContext.adapter, proxyContext.credentials, NOVADA_BROWSER_WS // passed for render_fallback escalation
+                        );
                         break;
                     }
                     case "agentproxy_session": {
@@ -169,24 +278,14 @@ class Proxy4AgentsServer {
                         result = await agentproxySession(validateSessionParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
+                    case "agentproxy_map": {
+                        if (!proxyContext)
+                            return this.missingProxyError();
+                        result = await agentproxyMap(validateMapParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        break;
+                    }
                     case "agentproxy_status": {
-                        const networkStatus = await agentproxyStatus();
-                        const lines = [];
-                        if (proxyContext) {
-                            const { adapter } = proxyContext;
-                            const caps = [
-                                adapter.capabilities.country ? "country targeting" : null,
-                                adapter.capabilities.city ? "city targeting" : null,
-                                adapter.capabilities.sticky ? "sticky sessions" : null,
-                            ].filter(Boolean).join(", ") || "none (use Novada for full targeting)";
-                            lines.push(`Provider:     ${adapter.displayName}`);
-                            lines.push(`Verified:     ${adapter.lastVerified}`);
-                            lines.push(`Capabilities: ${caps}`);
-                        }
-                        else {
-                            lines.push("Provider: none configured");
-                        }
-                        result = `${lines.join("\n")}\n\n${networkStatus}`;
+                        result = await agentproxyStatus(proxyContext?.adapter, proxyContext?.credentials);
                         break;
                     }
                     default:
@@ -201,13 +300,9 @@ class Proxy4AgentsServer {
                 return { content: [{ type: "text", text: result }] };
             }
             catch (error) {
-                const rawMsg = error instanceof AxiosError
-                    ? `HTTP ${error.response?.status || "error"}: ${String(error.response?.data?.msg || error.message)}`
-                    : error instanceof Error
-                        ? error.message
-                        : String(error);
+                const errResponse = classifyError(error);
                 // Systematic credential redaction — adapter knows which fields are sensitive
-                let message = rawMsg;
+                let message = errResponse.error.message;
                 if (proxyContext) {
                     for (const field of proxyContext.adapter.sensitiveFields) {
                         const val = proxyContext.credentials[field];
@@ -223,8 +318,9 @@ class Proxy4AgentsServer {
                     message = message.replaceAll(NOVADA_API_KEY, "***");
                 if (NOVADA_BROWSER_WS)
                     message = message.replaceAll(NOVADA_BROWSER_WS, "***");
+                errResponse.error.message = message;
                 return {
-                    content: [{ type: "text", text: `Error: ${message}` }],
+                    content: [{ type: "text", text: JSON.stringify(errResponse, null, 2) }],
                     isError: true,
                 };
             }
@@ -235,56 +331,52 @@ class Proxy4AgentsServer {
         const providers = adapters
             .map(a => `  ${a.displayName}: ${a.credentialDocs}`)
             .join("\n");
+        const errResp = {
+            ok: false,
+            error: {
+                code: "PROVIDER_NOT_CONFIGURED",
+                message: "No proxy provider is configured.",
+                recoverable: false,
+                agent_instruction: [
+                    "Set credentials for one of the supported providers:",
+                    providers,
+                    "",
+                    `Recommended — Novada: claude mcp add ${NPM_PACKAGE} -e NOVADA_PROXY_USER=your_username -e NOVADA_PROXY_PASS=your_password -- npx -y ${NPM_PACKAGE}`,
+                ].join("\n"),
+            },
+        };
         return {
-            content: [{
-                    type: "text",
-                    text: [
-                        "Error: No proxy provider is configured.",
-                        "",
-                        "Set credentials for one of the supported providers:",
-                        providers,
-                        "",
-                        "Recommended — Novada (default):",
-                        `  claude mcp add ${NPM_PACKAGE} \\`,
-                        "    -e NOVADA_PROXY_USER=your_username \\",
-                        "    -e NOVADA_PROXY_PASS=your_password \\",
-                        `    -- npx -y ${NPM_PACKAGE}`,
-                    ].join("\n"),
-                }],
+            content: [{ type: "text", text: JSON.stringify(errResp, null, 2) }],
             isError: true,
         };
     }
     missingApiKeyError() {
+        const errResp = {
+            ok: false,
+            error: {
+                code: "PROVIDER_NOT_CONFIGURED",
+                message: "NOVADA_API_KEY is not set (required for agentproxy_search).",
+                recoverable: false,
+                agent_instruction: `Get your API key at novada.com → Dashboard → API Keys. Then restart with: claude mcp add ${NPM_PACKAGE} -e NOVADA_API_KEY=your_key -- npx -y ${NPM_PACKAGE}`,
+            },
+        };
         return {
-            content: [{
-                    type: "text",
-                    text: [
-                        "Error: NOVADA_API_KEY is not set (required for agentproxy_search).",
-                        "",
-                        "Get your API key: novada.com → Dashboard → API Keys",
-                        "",
-                        "Then restart with:",
-                        `  claude mcp add ${NPM_PACKAGE} -e NOVADA_API_KEY=your_key -- npx -y ${NPM_PACKAGE}`,
-                    ].join("\n"),
-                }],
+            content: [{ type: "text", text: JSON.stringify(errResp, null, 2) }],
             isError: true,
         };
     }
     missingBrowserWsError() {
+        const errResp = {
+            ok: false,
+            error: {
+                code: "PROVIDER_NOT_CONFIGURED",
+                message: "NOVADA_BROWSER_WS is not set (required for agentproxy_render).",
+                recoverable: false,
+                agent_instruction: `Get your Browser API WebSocket URL at novada.com → Dashboard → Browser API → Playground → copy the Puppeteer URL (looks like wss://USER-zone-browser:PASS@upg-scbr.novada.com). Then restart with: claude mcp add ${NPM_PACKAGE} -e NOVADA_BROWSER_WS=your_wss_url -- npx -y ${NPM_PACKAGE}`,
+            },
+        };
         return {
-            content: [{
-                    type: "text",
-                    text: [
-                        "Error: NOVADA_BROWSER_WS is not set (required for agentproxy_render).",
-                        "",
-                        "Get your Browser API WebSocket URL:",
-                        "  novada.com → Dashboard → Browser API → Playground → copy the Puppeteer URL",
-                        "  It looks like: wss://USER-zone-browser:PASS@upg-scbr.novada.com",
-                        "",
-                        "Then restart with:",
-                        `  claude mcp add ${NPM_PACKAGE} -e NOVADA_BROWSER_WS=your_wss_url -- npx -y ${NPM_PACKAGE}`,
-                    ].join("\n"),
-                }],
+            content: [{ type: "text", text: JSON.stringify(errResp, null, 2) }],
             isError: true,
         };
     }

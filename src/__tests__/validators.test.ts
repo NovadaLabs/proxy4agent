@@ -3,6 +3,7 @@ import { validateFetchParams } from "../tools/fetch.js";
 import { validateSessionParams } from "../tools/session.js";
 import { validateRenderParams } from "../tools/render.js";
 import { validateSearchParams } from "../tools/search.js";
+import { validateBatchFetchParams } from "../tools/batch.js";
 
 // ─── Fetch validator ──────────────────────────────────────
 
@@ -205,5 +206,77 @@ describe("validateSearchParams", () => {
   it("accepts valid locale codes", () => {
     expect(validateSearchParams({ query: "test", country: "en-US" }).country).toBe("en-US");
     expect(validateSearchParams({ query: "test", language: "zh" }).language).toBe("zh");
+  });
+});
+
+// ─── Batch fetch validator ────────────────────────────────
+
+describe("validateBatchFetchParams", () => {
+  const validUrls = ["https://example.com", "https://httpbin.org/ip"];
+
+  it("accepts valid params", () => {
+    const p = validateBatchFetchParams({ urls: validUrls });
+    expect(p.urls).toHaveLength(2);
+    expect(p.concurrency).toBe(3);
+    expect(p.format).toBe("markdown");
+    expect(p.timeout).toBe(60);
+  });
+
+  it("rejects missing urls", () => {
+    expect(() => validateBatchFetchParams({})).toThrow("urls is required");
+  });
+
+  it("rejects non-array urls", () => {
+    expect(() => validateBatchFetchParams({ urls: "https://example.com" })).toThrow("array");
+  });
+
+  it("rejects fewer than 2 urls", () => {
+    expect(() => validateBatchFetchParams({ urls: ["https://example.com"] })).toThrow("between 2 and 20");
+  });
+
+  it("rejects more than 20 urls", () => {
+    const tooMany = Array.from({ length: 21 }, (_, i) => `https://example.com/${i}`);
+    expect(() => validateBatchFetchParams({ urls: tooMany })).toThrow("between 2 and 20");
+  });
+
+  it("allows url missing http(s) scheme (per-item failure, not batch rejection)", () => {
+    // Invalid URLs are not rejected at validation time — they become per-item errors in data.results
+    expect(() => validateBatchFetchParams({ urls: ["https://example.com", "not-a-url"] }))
+      .not.toThrow();
+  });
+
+  it("rejects non-string in urls array", () => {
+    expect(() => validateBatchFetchParams({ urls: ["https://example.com", 42] }))
+      .toThrow("string");
+  });
+
+  it("rejects country with hyphens", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, country: "us-bad" })).toThrow();
+  });
+
+  it("rejects session_id with hyphens", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, session_id: "my-session" })).toThrow();
+  });
+
+  it("rejects invalid format", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, format: "json" })).toThrow("format");
+  });
+
+  it("rejects concurrency out of range", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, concurrency: 0 })).toThrow("concurrency");
+    expect(() => validateBatchFetchParams({ urls: validUrls, concurrency: 6 })).toThrow("concurrency");
+  });
+
+  it("accepts valid concurrency", () => {
+    expect(validateBatchFetchParams({ urls: validUrls, concurrency: 5 }).concurrency).toBe(5);
+  });
+
+  it("rejects NaN timeout", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, timeout: "abc" })).toThrow("timeout");
+  });
+
+  it("rejects timeout out of range", () => {
+    expect(() => validateBatchFetchParams({ urls: validUrls, timeout: 0 })).toThrow();
+    expect(() => validateBatchFetchParams({ urls: validUrls, timeout: 121 })).toThrow();
   });
 });

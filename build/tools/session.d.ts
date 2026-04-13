@@ -6,6 +6,7 @@ export interface SessionParams {
     city?: string;
     format?: "raw" | "markdown";
     timeout?: number;
+    verify_sticky?: boolean;
 }
 export declare function agentproxySession(params: SessionParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
 export declare function validateSessionParams(raw: Record<string, unknown>): SessionParams;

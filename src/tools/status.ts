@@ -1,42 +1,74 @@
 import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
+import { VERSION } from "../config.js";
+import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
+import type { ProxySuccessResponse } from "../types.js";
 
-// Novada node-registration service — reports live network health
-const NETWORK_STATUS_URL = "https://gateway.novada.pro/health";
+export async function agentproxyStatus(
+  adapter?: ProxyAdapter,
+  credentials?: ProxyCredentials
+): Promise<string> {
+  const startTime = Date.now();
+  let connectivity_status: "HEALTHY" | "DEGRADED" | "UNAVAILABLE" = "UNAVAILABLE";
+  let proxy_ip: string | undefined;
+  const verified_via = "https://httpbin.org/ip";
 
-interface NetworkHealth {
-  status: string;
-  connected_nodes: number;
-  device_types?: Record<string, number>;
-  os_types?: Record<string, number>;
-  timestamp?: string;
-}
+  if (adapter && credentials) {
+    try {
+      const proxyUrl = adapter.buildProxyUrl(credentials, {});
+      const httpsAgent = new HttpsProxyAgent(proxyUrl);
 
-export async function agentproxyStatus(): Promise<string> {
-  // Try primary endpoint, fall back silently if it fails
-  let data: NetworkHealth | null = null;
-  try {
-    const response = await axios.get<NetworkHealth>(NETWORK_STATUS_URL, { timeout: 10000 });
-    data = response.data;
-  } catch {
-    // endpoint unavailable
+      const response = await axios.get(verified_via, {
+        httpsAgent,
+        proxy: false,
+        timeout: 10000,
+      });
+
+      const ip = (response.data as { origin?: string }).origin?.split(",")[0]?.trim();
+      if (ip) {
+        proxy_ip = ip;
+        connectivity_status = "HEALTHY";
+      } else {
+        connectivity_status = "DEGRADED";
+      }
+    } catch {
+      connectivity_status = "UNAVAILABLE";
+    }
   }
 
-  if (!data) {
-    return "Proxy Network Status: UNKNOWN\nCould not reach status endpoint — try again in a moment.";
+  const latency_ms = Date.now() - startTime;
+
+  const capabilities: string[] = [];
+  if (adapter) {
+    if (adapter.capabilities.country) capabilities.push("country_targeting");
+    if (adapter.capabilities.city) capabilities.push("city_targeting");
+    if (adapter.capabilities.sticky) capabilities.push("sticky_sessions");
   }
 
-  const devices = data.device_types
-    ? Object.entries(data.device_types)
-        .map(([k, v]) => `${k}: ${String(v)}`)
-        .join(", ")
-    : "unknown";
+  const result: ProxySuccessResponse = {
+    ok: true,
+    tool: "agentproxy_status",
+    data: {
+      provider: adapter?.displayName || "none configured",
+      version: VERSION,
+      capabilities,
+      connectivity: {
+        status: connectivity_status,
+        verified_via,
+        proxy_ip,
+        latency_ms,
+      },
+    },
+    meta: {
+      latency_ms,
+      quota: { credits_estimated: 1, note: "Check dashboard.novada.com for real-time balance" },
+    },
+  };
 
-  return [
-    `Proxy Network Status: ${data.status?.toUpperCase() || "UNKNOWN"}`,
-    `Connected nodes: ${data.connected_nodes ?? 0}`,
-    `Device breakdown: ${devices}`,
-    data.timestamp ? `Last updated: ${data.timestamp}` : "",
-  ]
-    .filter(Boolean)
-    .join("\n");
+  // Remove undefined proxy_ip
+  if (!proxy_ip) {
+    delete (result.data.connectivity as Record<string, unknown>).proxy_ip;
+  }
+
+  return JSON.stringify(result);
 }

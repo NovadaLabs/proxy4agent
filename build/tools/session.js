@@ -1,11 +1,14 @@
+import axios from "axios";
+import { HttpsProxyAgent } from "https-proxy-agent";
 import { agentproxyFetch } from "./fetch.js";
 // No hyphens in any proxy username param — providers use `-` as segment delimiter.
 const SAFE_COUNTRY = /^[a-zA-Z0-9_]+$/;
 const SAFE_CITY = /^[a-zA-Z0-9_]+$/;
 const SAFE_SESSION_ID = /^[a-zA-Z0-9_]+$/;
 export async function agentproxySession(params, adapter, credentials) {
-    // Session fetch is a regular fetch with session_id locked in
-    return agentproxyFetch({
+    const { verify_sticky = false } = params;
+    // Make the main fetch call
+    const fetchResultStr = await agentproxyFetch({
         url: params.url,
         session_id: params.session_id,
         country: params.country,
@@ -13,6 +16,61 @@ export async function agentproxySession(params, adapter, credentials) {
         format: params.format || "markdown",
         timeout: params.timeout,
     }, adapter, credentials);
+    // Parse the fetch result JSON
+    let fetchResult;
+    try {
+        fetchResult = JSON.parse(fetchResultStr);
+    }
+    catch {
+        // Fallback: return raw fetch result if JSON parsing fails
+        return fetchResultStr;
+    }
+    // If verify_sticky requested, make a second call to httpbin.org/ip with same session
+    let session_verified;
+    if (verify_sticky && adapter.capabilities.sticky) {
+        try {
+            const proxyUrl = adapter.buildProxyUrl(credentials, {
+                session_id: params.session_id,
+                country: params.country,
+            });
+            const httpsAgent = new HttpsProxyAgent(proxyUrl);
+            // First IP check via httpbin
+            const ip1Resp = await axios.get("https://httpbin.org/ip", {
+                httpsAgent,
+                proxy: false,
+                timeout: 15000,
+            });
+            const ip1 = ip1Resp.data.origin?.split(",")[0]?.trim();
+            // Second IP check — same session, should return same IP
+            const ip2Resp = await axios.get("https://httpbin.org/ip", {
+                httpsAgent,
+                proxy: false,
+                timeout: 15000,
+            });
+            const ip2 = ip2Resp.data.origin?.split(",")[0]?.trim();
+            session_verified = ip1 !== undefined && ip2 !== undefined && ip1 === ip2;
+        }
+        catch {
+            // Verification call failed — leave session_verified undefined
+            session_verified = false;
+        }
+    }
+    // credits: 1 base + 2 for verify_sticky (2 httpbin calls)
+    const creditsEstimated = verify_sticky ? 3 : 1;
+    // Rebuild response with session_verified in meta
+    const result = {
+        ...fetchResult,
+        tool: "agentproxy_session",
+        meta: {
+            ...fetchResult.meta,
+            session_id: params.session_id,
+            session_verified,
+            quota: { credits_estimated: creditsEstimated, note: "Check dashboard.novada.com for real-time balance" },
+        },
+    };
+    if (result.meta.session_verified === undefined)
+        delete result.meta.session_verified;
+    return JSON.stringify(result);
 }
 export function validateSessionParams(raw) {
     if (!raw.session_id || typeof raw.session_id !== "string" || raw.session_id.length > 64 || !SAFE_SESSION_ID.test(raw.session_id)) {
@@ -48,5 +106,6 @@ export function validateSessionParams(raw) {
         city: raw.city,
         format: raw.format || "markdown",
         timeout,
+        verify_sticky: raw.verify_sticky === true,
     };
 }

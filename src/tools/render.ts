@@ -1,5 +1,8 @@
 import puppeteer from "puppeteer-core";
 import { htmlToMarkdown, htmlToText, unicodeSafeTruncate } from "../utils.js";
+import type { ProxySuccessResponse } from "../types.js";
+
+const QUOTA_NOTE = "Check dashboard.novada.com for real-time balance";
 
 export interface RenderParams {
   url: string;
@@ -17,6 +20,8 @@ export async function agentproxyRender(
   if (!url.startsWith("http://") && !url.startsWith("https://")) {
     throw new Error("URL must start with http:// or https://");
   }
+
+  const startTime = Date.now();
 
   const browser = await puppeteer.connect({
     browserWSEndpoint: browserWsEndpoint,
@@ -40,7 +45,6 @@ export async function agentproxyRender(
       }
 
       const html = await page.content();
-      const title = await page.title();
 
       const content =
         format === "html" ? html
@@ -52,18 +56,24 @@ export async function agentproxyRender(
         ? unicodeSafeTruncate(content, 100_000) + "\n\n[... truncated — rendered page is large]"
         : content;
 
-      const size = (html.length / 1024).toFixed(0);
-      const meta = [
-        `URL: ${url}`,
-        `Title: ${title}`,
-        `Size: ${size} KB`,
-        "Rendered: yes (Browser API)",
-        truncated ? "Truncated: yes" : "",
-      ]
-        .filter(Boolean)
-        .join(" | ");
+      const latency_ms = Date.now() - startTime;
 
-      return `[${meta}]\n\n${finalContent}`;
+      const result: ProxySuccessResponse = {
+        ok: true,
+        tool: "agentproxy_render",
+        data: {
+          url,
+          content: finalContent,
+          format,
+        },
+        meta: {
+          latency_ms,
+          truncated,
+          quota: { credits_estimated: 5, note: "Browser API is metered separately — " + QUOTA_NOTE },
+        },
+      };
+
+      return JSON.stringify(result);
     } finally {
       // Always close the page to avoid server-side session leak (billed by session-second)
       await page.close().catch(() => {});

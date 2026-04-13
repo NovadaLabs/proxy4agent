@@ -1,4 +1,5 @@
 import { agentproxyFetch } from "./fetch.js";
+import { agentproxyRender } from "./render.js";
 /**
  * Extract structured data from a URL using pattern matching on the fetched HTML.
  *
@@ -9,46 +10,79 @@ import { agentproxyFetch } from "./fetch.js";
  * For more complex extraction needs, agents can use agentproxy_fetch(format="raw")
  * and do their own parsing.
  */
-export async function agentproxyExtract(params, adapter, credentials) {
-    const { url, fields, country, city, session_id, timeout = 60 } = params;
-    // Fetch raw HTML — we need the full DOM for extraction
-    const fetchParams = {
-        url,
-        format: "raw",
-        country,
-        city,
-        session_id,
-        timeout,
-    };
-    const rawResult = await agentproxyFetch(fetchParams, adapter, credentials);
-    // rawResult format: "[meta]\n\nHTML_CONTENT"
-    // Split off the metadata line to get pure HTML
-    const htmlStart = rawResult.indexOf("\n\n");
-    const html = htmlStart >= 0 ? rawResult.slice(htmlStart + 2) : rawResult;
-    const metaLine = htmlStart >= 0 ? rawResult.slice(0, htmlStart) : "";
-    // Extract each requested field using pattern-based heuristics
-    const extracted = {};
-    for (const field of fields) {
-        extracted[field] = extractField(html, field);
+// Error messages that indicate the proxy fetch failed hard and render may succeed
+const RENDER_ESCALATION_PATTERNS = [
+    "TLS", "SSL", "socket disconnect", "secure TLS",
+    "ECONNRESET", "ECONNREFUSED",
+    "403", "blocked", "bot detection",
+];
+function shouldEscalateToRender(msg) {
+    return RENDER_ESCALATION_PATTERNS.some(p => msg.toLowerCase().includes(p.toLowerCase()));
+}
+export async function agentproxyExtract(params, adapter, credentials, browserWsEndpoint) {
+    const { url, fields, country, city, session_id, timeout = 60, render_fallback = false } = params;
+    const startTime = Date.now();
+    let html = "";
+    let usedRender = false;
+    let fetchWarning;
+    // Attempt 1: proxy fetch (fast, cheap)
+    try {
+        const fetchParams = { url, format: "raw", country, city, session_id, timeout };
+        const fetchResultStr = await agentproxyFetch(fetchParams, adapter, credentials);
+        const fetchResult = JSON.parse(fetchResultStr);
+        html = fetchResult.data.content || "";
     }
-    // Format output as structured text (agent-friendly)
-    const lines = [
-        metaLine,
-        `Extracted ${fields.length} fields from: ${url}`,
-        "",
-    ];
-    for (const [key, value] of Object.entries(extracted)) {
-        if (Array.isArray(value)) {
-            lines.push(`${key}:`);
-            for (const item of value) {
-                lines.push(`  - ${item}`);
+    catch (err) {
+        const msg = err instanceof Error ? err.message : String(err);
+        // Auto-escalate to render if enabled and the error suggests a JS/TLS block
+        if (render_fallback && browserWsEndpoint && shouldEscalateToRender(msg)) {
+            try {
+                const renderResultStr = await agentproxyRender({ url, format: "html", timeout }, browserWsEndpoint);
+                const renderResult = JSON.parse(renderResultStr);
+                html = renderResult.data.content || "";
+                usedRender = true;
+                fetchWarning = `Proxy fetch failed (${msg.slice(0, 80)}...) — escalated to render automatically`;
+            }
+            catch (renderErr) {
+                // Both failed — re-throw the original fetch error
+                throw err;
             }
         }
         else {
-            lines.push(`${key}: ${value ?? "(not found)"}`);
+            throw err;
         }
     }
-    return lines.join("\n");
+    const latency_ms = Date.now() - startTime;
+    // Extract each requested field using pattern-based heuristics
+    const extractedFields = {};
+    for (const field of fields) {
+        extractedFields[field] = extractField(html, field);
+    }
+    const result = {
+        ok: true,
+        tool: "agentproxy_extract",
+        data: {
+            url,
+            fields: extractedFields,
+            ...(fetchWarning ? { fetch_warning: fetchWarning } : {}),
+            ...(usedRender ? { extracted_via: "render" } : { extracted_via: "proxy_fetch" }),
+        },
+        meta: {
+            latency_ms,
+            country,
+            session_id,
+            // render costs 5 credits when used as fallback, else 1
+            quota: {
+                credits_estimated: usedRender ? 5 : 1,
+                note: "Check dashboard.novada.com for real-time balance",
+            },
+        },
+    };
+    if (!result.meta.country)
+        delete result.meta.country;
+    if (!result.meta.session_id)
+        delete result.meta.session_id;
+    return JSON.stringify(result);
 }
 /**
  * Heuristic field extraction from HTML.
@@ -297,5 +331,6 @@ export function validateExtractParams(raw) {
         city: raw.city,
         session_id: raw.session_id,
         timeout,
+        render_fallback: raw.render_fallback === true,
     };
 }
