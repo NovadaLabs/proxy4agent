@@ -211,10 +211,10 @@ const TOOLS = [
     },
 ];
 // ─── MCP Server ──────────────────────────────────────────────────────────────
-class Proxy4AgentsServer {
+class NovadaProxyServer {
     server;
     constructor() {
-        this.server = new Server({ name: "proxy4agents-mcp", version: VERSION }, { capabilities: { tools: {}, prompts: {}, resources: {} } });
+        this.server = new Server({ name: "novada-proxy-mcp", version: VERSION }, { capabilities: { tools: {}, prompts: {}, resources: {} } });
         this.setupHandlers();
         this.registerPrompts();
         this.registerResources();
@@ -623,7 +623,7 @@ class Proxy4AgentsServer {
                             uri,
                             mimeType: "text/plain",
                             text: [
-                                "=== Proxy4Agents MCP — Common Workflow Patterns ===",
+                                "=== Novada Proxy — Common Workflow Patterns ===",
                                 "",
                                 "--- 1. Site Crawl Pipeline (map → batch) ---",
                                 "Goal: read all pages on a site",
@@ -703,7 +703,7 @@ class Proxy4AgentsServer {
                             uri,
                             mimeType: "text/plain",
                             text: [
-                                "=== Proxy4Agents MCP — Credit Cost Guide ===",
+                                "=== Novada Proxy — Credit Cost Guide ===",
                                 "",
                                 "Credits per tool call:",
                                 "  agentproxy_fetch     → 1 credit (0 if cache_hit=true)",
@@ -751,7 +751,7 @@ class Proxy4AgentsServer {
         const provider = proxyContext
             ? `${proxyContext.adapter.displayName} adapter`
             : "no proxy provider";
-        console.error(`Proxy4Agents MCP v${VERSION} — ${provider}`);
+        console.error(`Novada Proxy v${VERSION} — ${provider}`);
     }
 }
 // ─── CLI ─────────────────────────────────────────────────────────────────────
@@ -766,7 +766,7 @@ if (cliArgs.includes("--help") || cliArgs.includes("-h")) {
     const adapterDocs = listAdapters()
         .map(a => `  ${a.displayName.padEnd(12)} ${a.credentialDocs}`)
         .join("\n");
-    console.log(`Proxy4Agents MCP v${VERSION} — Residential proxy MCP server for AI agents
+    console.log(`Novada Proxy v${VERSION} — Residential proxy MCP server for AI agents
 
 Usage:
   npx ${NPM_PACKAGE}              Start the MCP server
@@ -799,7 +799,7 @@ Tools:
 `);
     process.exit(0);
 }
-const server = new Proxy4AgentsServer();
+const server = new NovadaProxyServer();
 server.run().catch((error) => {
     let msg = error instanceof Error ? error.message : String(error);
     // Redact any credentials that might appear in startup errors

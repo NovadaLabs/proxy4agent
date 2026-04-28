@@ -119,7 +119,7 @@ export async function agentproxyFetch(
   if (params.city       && !adapter.capabilities.city)    unsupported.push(`city (not supported by ${adapter.displayName})`);
   if (params.session_id && !adapter.capabilities.sticky)  unsupported.push(`session_id/sticky (not supported by ${adapter.displayName})`);
   if (unsupported.length) {
-    console.error(`[proxy4agents] Warning: ${unsupported.join(", ")}. Switch to Novada for full targeting support.`);
+    console.error(`[novada-proxy] Warning: ${unsupported.join(", ")}. Switch to Novada for full targeting support.`);
   }
 
   const proxyUrl = adapter.buildProxyUrl(credentials, params);

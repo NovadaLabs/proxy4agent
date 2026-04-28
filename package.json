@@ -1,11 +1,11 @@
 {
   "name": "novada-proxy-mcp",
-  "version": "1.7.3",
-  "mcpName": "io.github.NovadaLabs/proxy4agents-mcp",
-  "description": "Residential proxy MCP server for AI agents — bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, Google search. Works with Claude, Cursor, Windsurf. Multi-provider: Novada, BrightData, Smartproxy, Oxylabs.",
+  "version": "1.7.5",
+  "mcpName": "io.github.NovadaLabs/novada-proxy-mcp",
+  "description": "Novada Proxy — residential proxy MCP server for AI agents. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, Google search. Multi-provider: Novada, BrightData, Smartproxy, Oxylabs.",
   "type": "module",
   "bin": {
-    "bestproxy4agents-mcp": "build/index.js"
+    "novada-proxy-mcp": "build/index.js"
   },
   "files": [
     "build/**/*.js",

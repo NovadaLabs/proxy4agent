@@ -1,4 +1,4 @@
-export const VERSION = "1.7.3";
+export const VERSION = "1.7.5";
 // npm package name — used in CLI help and error messages
 export const NPM_PACKAGE = "novada-proxy-mcp";
 // Novada Scraper API — web search

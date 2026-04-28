@@ -1,4 +1,4 @@
-<h1 align="center">Proxy4Agents MCP</h1>
+<h1 align="center">Novada Proxy</h1>
 
 <p align="center"><strong>The agent-first residential proxy MCP — works with any provider.</strong></p>
 
@@ -29,12 +29,12 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 </p>
 
 <p align="center">
-  <a href="#proxy4agents-mcp"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="English"></a>
-  <a href="#proxy4agents-mcp中文文档"><img src="https://img.shields.io/badge/lang-中文文档-red?style=flat-square" alt="中文文档"></a>
+  <a href="#novada-proxy"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="English"></a>
+  <a href="#novada-proxy中文文档"><img src="https://img.shields.io/badge/lang-中文文档-red?style=flat-square" alt="中文文档"></a>
 </p>
 
 <p align="center">
-  <a href="#why-proxy4agents-mcp">Why</a> &middot;
+  <a href="#why-novada-proxy">Why</a> &middot;
   <a href="#quick-install">Install</a> &middot;
   <a href="#8-tools-at-a-glance">Tools</a> &middot;
   <a href="#5-prompts">Prompts</a> &middot;
@@ -52,9 +52,9 @@ Works with **Claude Code**, **Cursor**, **Windsurf**, **Cline**, **Continue**, a
 
 ---
 
-## Why Proxy4Agents MCP
+## Why Novada Proxy
 
-AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests are detected and rejected by Cloudflare, Akamai, DataDome, and PerimeterX. Proxy4Agents MCP routes your agent through real residential IPs — indistinguishable from a human browser.
+AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests are detected and rejected by Cloudflare, Akamai, DataDome, and PerimeterX. Novada Proxy routes your agent through real residential IPs — indistinguishable from a human browser.
 
 | Problem | Solution |
 |---------|----------|
@@ -186,7 +186,7 @@ Get credentials: **[novada.com](https://www.novada.com)** -> Dashboard -> Reside
 
 ## Providers
 
-Proxy4Agents MCP works with **any HTTP proxy provider**. Novada is the built-in default with the deepest integration.
+Novada Proxy works with **any HTTP proxy provider**. Novada is the built-in default with the deepest integration.
 
 **Priority:** Novada -> BrightData -> Smartproxy -> Oxylabs -> Generic. First configured provider wins.
 
@@ -250,7 +250,7 @@ claude mcp add novada-proxy-mcp \
 ## Agent-First Design
 
 > [!NOTE]
-> Proxy4Agents is the only proxy MCP designed specifically for autonomous AI agents. Every response, error, and description is optimized for machine consumption.
+> Novada Proxy is the only proxy MCP designed specifically for autonomous AI agents. Every response, error, and description is optimized for machine consumption.
 
 | Feature | What It Means |
 |---------|--------------|
@@ -603,7 +603,7 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 
 ---
 
-# Proxy4Agents MCP（中文文档）
+# Novada Proxy（中文文档）
 
 <p align="center"><strong>AI 智能体专属住宅代理 MCP — 支持任意供应商。</strong></p>
 
@@ -612,7 +612,7 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 </p>
 
 <p align="center">
-  <a href="#proxy4agents-mcp"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="返回英文"></a>
+  <a href="#novada-proxy"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="返回英文"></a>
   <img src="https://img.shields.io/badge/工具-8个-orange?style=flat-square" alt="8 个工具">
   <img src="https://img.shields.io/badge/提示词-5个-blue?style=flat-square" alt="5 个提示词">
   <img src="https://img.shields.io/badge/资源-5个-green?style=flat-square" alt="5 个资源">
@@ -749,7 +749,7 @@ agentproxy_session(session_id, url="/data/2")    → 同一 IP
 ## 智能体优先设计
 
 > [!NOTE]
-> Proxy4Agents 是唯一专为自主 AI 智能体设计的代理 MCP。每个响应、错误和描述都为机器消费而优化。
+> Novada Proxy 是唯一专为自主 AI 智能体设计的代理 MCP。每个响应、错误和描述都为机器消费而优化。
 
 | 特性 | 含义 |
 |------|------|
