@@ -7,8 +7,8 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 </p>
 
 <p align="center">
-  <a href="https://npmjs.com/package/bestproxy4agents-mcp"><img src="https://img.shields.io/npm/v/bestproxy4agents-mcp?label=npm&color=CB3837&style=flat-square" alt="npm version"></a>
-  <a href="https://npmjs.com/package/bestproxy4agents-mcp"><img src="https://img.shields.io/npm/dw/bestproxy4agents-mcp?label=downloads&color=blue&style=flat-square" alt="npm downloads"></a>
+  <a href="https://npmjs.com/package/novada-proxy-mcp"><img src="https://img.shields.io/npm/v/novada-proxy-mcp?label=npm&color=CB3837&style=flat-square" alt="npm version"></a>
+  <a href="https://npmjs.com/package/novada-proxy-mcp"><img src="https://img.shields.io/npm/dw/novada-proxy-mcp?label=downloads&color=blue&style=flat-square" alt="npm downloads"></a>
   <a href="LICENSE"><img src="https://img.shields.io/badge/license-MIT-green?style=flat-square" alt="License: MIT"></a>
   <a href="https://github.com/NovadaLabs/proxy4agent/actions"><img src="https://github.com/NovadaLabs/proxy4agent/actions/workflows/ci.yml/badge.svg" alt="CI"></a>
   <a href="https://nodejs.org"><img src="https://img.shields.io/badge/node-%3E%3D18-brightgreen?style=flat-square" alt="Node.js"></a>
@@ -141,36 +141,36 @@ Always-accessible reference data that agents can read at any time, without makin
 
 **Core — fetch any URL through residential proxy:**
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_PROXY_USER=your_username \
   -e NOVADA_PROXY_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 **Search only:**
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_API_KEY=your_key \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 **All tools (proxy + search + browser render):**
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_PROXY_USER=your_username \
   -e NOVADA_PROXY_PASS=your_password \
   -e NOVADA_API_KEY=your_key \
   -e NOVADA_BROWSER_WS=your_browser_ws_url \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 **Cursor / Windsurf / Cline — add to MCP config:**
 ```json
 {
   "mcpServers": {
-    "bestproxy4agents-mcp": {
+    "novada-proxy-mcp": {
       "command": "npx",
-      "args": ["-y", "bestproxy4agents-mcp"],
+      "args": ["-y", "novada-proxy-mcp"],
       "env": {
         "NOVADA_PROXY_USER": "your_username",
         "NOVADA_PROXY_PASS": "your_password"
@@ -202,10 +202,10 @@ Proxy4Agents MCP works with **any HTTP proxy provider**. Novada is the built-in 
 <summary>BrightData setup</summary>
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e BRIGHTDATA_USER="brd-customer-abc123-zone-residential" \
   -e BRIGHTDATA_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 `BRIGHTDATA_USER` is your full username including zone. Optional: `BRIGHTDATA_HOST`, `BRIGHTDATA_PORT` (default `zproxy.lum-superproxy.io:22225`).
 </details>
@@ -214,10 +214,10 @@ claude mcp add bestproxy4agents-mcp \
 <summary>Smartproxy setup</summary>
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e SMARTPROXY_USER=your_username \
   -e SMARTPROXY_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 Optional: `SMARTPROXY_HOST`, `SMARTPROXY_PORT` (default `gate.smartproxy.com:10001`).
 </details>
@@ -226,10 +226,10 @@ Optional: `SMARTPROXY_HOST`, `SMARTPROXY_PORT` (default `gate.smartproxy.com:100
 <summary>Oxylabs setup</summary>
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e OXYLABS_USER=your_username \
   -e OXYLABS_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 Optional: `OXYLABS_HOST`, `OXYLABS_PORT` (default `pr.oxylabs.io:7777`).
 </details>
@@ -238,9 +238,9 @@ Optional: `OXYLABS_HOST`, `OXYLABS_PORT` (default `pr.oxylabs.io:7777`).
 <summary>Generic HTTP proxy (IPRoyal, any provider)</summary>
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e PROXY_URL="http://username:password@geo.iproyal.com:12321" \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 `country`, `city`, `session_id` params are ignored with Generic — encode targeting directly in your proxy URL.
 </details>
@@ -545,13 +545,13 @@ Every error response includes a typed `error.code`, `recoverable` flag, and `age
 
 | Client | Install method |
 |--------|---------------|
-| **Claude Code** | `claude mcp add bestproxy4agents-mcp -e ... -- npx -y bestproxy4agents-mcp` |
-| **Cursor** | Settings -> MCP -> Add server -> `npx -y bestproxy4agents-mcp` |
-| **Windsurf** | MCP config -> `npx -y bestproxy4agents-mcp` |
-| **Cline** | MCP settings -> command: `npx`, args: `["-y", "bestproxy4agents-mcp"]` |
+| **Claude Code** | `claude mcp add novada-proxy-mcp -e ... -- npx -y novada-proxy-mcp` |
+| **Cursor** | Settings -> MCP -> Add server -> `npx -y novada-proxy-mcp` |
+| **Windsurf** | MCP config -> `npx -y novada-proxy-mcp` |
+| **Cline** | MCP settings -> command: `npx`, args: `["-y", "novada-proxy-mcp"]` |
 | **Continue** | `.continue/config.json` -> mcpServers |
 | **Smithery** | [smithery.ai/server/proxy4agent](https://smithery.ai/server/proxy4agent) |
-| **Any MCP client** | stdio transport / `npx -y bestproxy4agents-mcp` |
+| **Any MCP client** | stdio transport / `npx -y novada-proxy-mcp` |
 
 ---
 
@@ -880,23 +880,23 @@ data.fetch_warning = "Proxy fetch failed... escalated to render"
 
 ```bash
 # 核心（住宅代理抓取）
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_PROXY_USER=你的用户名 \
   -e NOVADA_PROXY_PASS=你的密码 \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 
 # 仅搜索
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_API_KEY=你的_API_Key \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 
 # 全功能（代理 + 搜索 + 浏览器渲染）
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_PROXY_USER=你的用户名 \
   -e NOVADA_PROXY_PASS=你的密码 \
   -e NOVADA_API_KEY=你的_API_Key \
   -e NOVADA_BROWSER_WS=你的_Browser_WS_URL \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 获取凭证：**[novada.com](https://www.novada.com)** -> 仪表盘 -> 住宅代理 -> 端点生成器
@@ -905,9 +905,9 @@ claude mcp add bestproxy4agents-mcp \
 ```json
 {
   "mcpServers": {
-    "bestproxy4agents-mcp": {
+    "novada-proxy-mcp": {
       "command": "npx",
-      "args": ["-y", "bestproxy4agents-mcp"],
+      "args": ["-y", "novada-proxy-mcp"],
       "env": {
         "NOVADA_PROXY_USER": "你的用户名",
         "NOVADA_PROXY_PASS": "你的密码"

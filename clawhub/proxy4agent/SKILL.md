@@ -12,15 +12,15 @@ metadata:
     os: [macos, linux, windows]
     install:
       - kind: node
-        formula: bestproxy4agents-mcp@1.7.1
-        bins: [bestproxy4agents-mcp]
+        formula: novada-proxy-mcp@1.7.1
+        bins: [novada-proxy-mcp]
 ---
 
 # Proxy4Agents MCP
 
 Residential proxy MCP server for AI agents. Route HTTP requests through 2M+ real home devices to bypass anti-bot systems, geo-target by country or city, maintain sticky sessions, and cache responses to save proxy credits.
 
-**npm:** `bestproxy4agents-mcp` | **GitHub:** [NovadaLabs/proxy4agent](https://github.com/NovadaLabs/proxy4agent)
+**npm:** `novada-proxy-mcp` | **GitHub:** [NovadaLabs/proxy4agent](https://github.com/NovadaLabs/proxy4agent)
 
 ## Setup
 
@@ -29,10 +29,10 @@ You only need credentials for ONE provider. Novada is the default and recommende
 ### Novada (recommended)
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e NOVADA_PROXY_USER=your_username \
   -e NOVADA_PROXY_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 Get credentials: [novada.com](https://www.novada.com) → Dashboard → Residential Proxies (free tier, no credit card).
@@ -40,18 +40,18 @@ Get credentials: [novada.com](https://www.novada.com) → Dashboard → Resident
 ### Any HTTP proxy (BrightData, Smartproxy, Oxylabs, IPRoyal…)
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e PROXY_URL="http://user:pass@host:port" \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 ### BrightData
 
 ```bash
-claude mcp add bestproxy4agents-mcp \
+claude mcp add novada-proxy-mcp \
   -e BRIGHTDATA_USER="brd-customer-abc123-zone-residential" \
   -e BRIGHTDATA_PASS=your_password \
-  -- npx -y bestproxy4agents-mcp
+  -- npx -y novada-proxy-mcp
 ```
 
 ### Optional credentials
