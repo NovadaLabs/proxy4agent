@@ -6,3 +6,4 @@ export { agentproxyStatus } from "./status.js";
 export { agentproxyRender, validateRenderParams } from "./render.js";
 export { agentproxyExtract, validateExtractParams } from "./extract.js";
 export { agentproxyMap, validateMapParams } from "./map.js";
+export { agentproxyCrawl, validateCrawlParams } from "./crawl.js";

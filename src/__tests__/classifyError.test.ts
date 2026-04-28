@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { AxiosError } from "axios";
-import { classifyError } from "../index.js";
+import { classifyError } from "../errors.js";
 
 // Helper to create a mock AxiosError that passes axios.isAxiosError()
 function makeAxiosError(status: number, message?: string): AxiosError {

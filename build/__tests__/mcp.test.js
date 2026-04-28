@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { classifyError } from "../index.js";
+import { classifyError } from "../errors.js";
 /**
  * MCP protocol layer contract tests.
  *

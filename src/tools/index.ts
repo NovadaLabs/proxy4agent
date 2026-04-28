@@ -20,3 +20,6 @@ export type { ExtractParams } from "./extract.js";
 
 export { agentproxyMap, validateMapParams } from "./map.js";
 export type { MapParams } from "./map.js";
+
+export { agentproxyCrawl, validateCrawlParams } from "./crawl.js";
+export type { CrawlParams } from "./crawl.js";

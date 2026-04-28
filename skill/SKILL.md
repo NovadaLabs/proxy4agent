@@ -1,0 +1,167 @@
+---
+name: novada-proxy
+description: >-
+  Residential proxy tools for AI agents — fetch, crawl, search, extract,
+  render through 2M+ IPs. Bypass anti-bot, geo-target 195+ countries.
+  Use when: scraping websites, researching topics, extracting structured
+  data, or any task that needs web access through a proxy.
+version: 1.7.2
+author: NovadaLabs
+platform: clawhub
+install:
+  mcp:
+    command: npx
+    args: ["-y", "novada-proxy-mcp"]
+    transport: stdio
+    env:
+      NOVADA_PROXY_USER: "required — proxy username"
+      NOVADA_PROXY_PASS: "required — proxy password"
+      NOVADA_API_KEY: "optional — enables agentproxy_search"
+      NOVADA_BROWSER_WS: "optional — enables agentproxy_render"
+security:
+  network: outbound only (proxy requests to target URLs)
+  credentials: proxy credentials via env vars
+  filesystem: none
+  telemetry: none
+tags: [proxy, scraping, web-access, anti-bot, geo-targeting, mcp, residential-ip]
+trigger:
+  - "scrape"
+  - "fetch through proxy"
+  - "bypass cloudflare"
+  - "geo-target"
+  - "residential proxy"
+  - "extract product data"
+  - "crawl site"
+  - "web search"
+---
+
+# Novada Proxy — Skill for Claude Code
+
+## When to Use This Skill
+
+- Fetching URLs that block direct requests (Cloudflare, Akamai, DataDome)
+- Scraping e-commerce, news, or professional sites (Amazon, LinkedIn, etc.)
+- Extracting structured fields (title, price, rating) without HTML parsing
+- Researching topics (search + batch read pipeline)
+- Crawling entire sites (discover URLs + parallel fetch)
+- Accessing geo-restricted content from 195+ countries
+- Multi-step flows requiring the same IP (login, pagination)
+- Rendering JS-heavy SPAs that return blank with standard HTTP
+
+## Setup
+
+```bash
+# Core (proxy fetch)
+claude mcp add novada-proxy-mcp \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -- npx -y novada-proxy-mcp
+
+# All tools (proxy + search + browser render)
+claude mcp add novada-proxy-mcp \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -e NOVADA_API_KEY=your_key \
+  -e NOVADA_BROWSER_WS=your_wss_url \
+  -- npx -y novada-proxy-mcp
+```
+
+Credentials: [novada.com](https://www.novada.com) -> Dashboard -> Residential Proxies
+
+## Tool Decision Tree
+
+```
+Need to fetch a URL?
+  Static HTML page             -> agentproxy_fetch
+  Need specific fields         -> agentproxy_extract
+  JS-heavy / SPA / blank page  -> agentproxy_render (5 credits)
+
+Need multiple URLs?
+  Have the URLs already        -> agentproxy_batch_fetch (2-20 URLs, up to 5x parallel)
+  Need to discover URLs first  -> agentproxy_map -> agentproxy_batch_fetch
+
+Need to find URLs by topic?    -> agentproxy_search -> agentproxy_batch_fetch
+
+Need same IP across calls?     -> agentproxy_session (sticky IP via session_id)
+
+Need to check connectivity?    -> agentproxy_status
+```
+
+## Tools Reference
+
+| Tool | Purpose | Credits | Key Params |
+|------|---------|---------|------------|
+| `agentproxy_fetch` | Fetch single URL via residential proxy | 1 | `url`, `country`, `format`, `session_id` |
+| `agentproxy_batch_fetch` | Fetch 2-20 URLs concurrently | 1/URL | `urls`, `concurrency` (1-5), `country` |
+| `agentproxy_extract` | Extract structured fields from URL | 1 (5 if render fallback) | `url`, `fields[]`, `render_fallback` |
+| `agentproxy_map` | Discover all internal links on a page | 1 | `url`, `limit` (10-200) |
+| `agentproxy_session` | Sticky session (same IP across calls) | 1 (3 if verify) | `session_id`, `url`, `verify_sticky` |
+| `agentproxy_search` | Google search as structured JSON | 1 | `query`, `num` (1-20), `country` |
+| `agentproxy_render` | Render JS pages via real Chromium [BETA] | 5 | `url`, `format`, `wait_for` (CSS selector) |
+| `agentproxy_status` | Check proxy health + version | 1 | _(none)_ |
+
+## Common Workflows
+
+**1. Site Crawl (map -> batch)**
+```
+agentproxy_map(url, limit=50)           -> internal_urls[]
+agentproxy_batch_fetch(urls, concurrency=5) -> all pages in parallel
+```
+
+**2. Research (search -> batch)**
+```
+agentproxy_search(query, num=5)         -> titles + URLs + snippets
+agentproxy_batch_fetch(urls, format="markdown") -> full page content
+```
+
+**3. Sticky Session (login + multi-page)**
+```
+agentproxy_session(session_id="job001", url="/login")
+agentproxy_session(session_id="job001", url="/dashboard")
+agentproxy_session(session_id="job001", url="/data/page/1")
+```
+
+**4. Price Monitoring (geo comparison)**
+```
+agentproxy_fetch(url=product_url, country="US")
+agentproxy_fetch(url=product_url, country="DE")
+agentproxy_fetch(url=product_url, country="JP")
+# 2nd call per URL+country is a cache hit (0 credits)
+```
+
+**5. Structured Extraction (with JS fallback)**
+```
+agentproxy_extract(url, fields=["title","price","rating"], render_fallback=true)
+# Auto-escalates to Chromium if proxy fetch is blocked
+```
+
+## Error Recovery
+
+| Error Code | Recoverable | Next Step |
+|------------|-------------|-----------|
+| `BOT_DETECTION_SUSPECTED` | Yes | Retry with `agentproxy_render`, or different `country` |
+| `TLS_ERROR` | Yes | Retry with different `country`, or use `agentproxy_render` |
+| `TIMEOUT` | Yes | Increase `timeout` param (max 120s), or retry |
+| `RATE_LIMITED` | Yes | Wait 5s, then retry |
+| `PAGE_NOT_FOUND` | No | Verify URL is correct. Do not retry. |
+| `NETWORK_ERROR` | No | DNS failed. Check URL/domain. |
+| `SESSION_STICKINESS_FAILED` | Yes | Retry with `verify_sticky: true` |
+| `INVALID_INPUT` | No | Fix params per tool's inputSchema |
+| `PROVIDER_NOT_CONFIGURED` | No | Set env vars and restart MCP |
+
+**Escalation chain:** `agentproxy_fetch` fails -> try different `country` -> try `agentproxy_render` -> check `agentproxy_status`
+
+## Cost Guide
+
+| Tool | Credits | Cache? |
+|------|---------|--------|
+| fetch | 1 | Yes (300s TTL) |
+| batch_fetch | 1 per URL | Yes |
+| extract | 1 (5 if render fallback) | No |
+| map | 1 | No |
+| session | 1 (3 if verify_sticky) | Never (sticky routing) |
+| search | 1 | No |
+| render | 5 | No |
+| status | 1 | No |
+
+**Optimization:** Always try `fetch` before `render` (5x cheaper). Cache key = `url + format + country`. Repeated calls within 300s = 0 credits (`meta.cache_hit: true`). Check `meta.quota.credits_estimated` on every response.

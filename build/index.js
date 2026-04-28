@@ -2,10 +2,11 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-import axios from "axios";
-import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxySession, validateSessionParams, agentproxyRender, validateRenderParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyStatus, } from "./tools/index.js";
+import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxySession, validateSessionParams, agentproxyRender, validateRenderParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyCrawl, validateCrawlParams, agentproxyStatus, } from "./tools/index.js";
 import { resolveAdapter, listAdapters } from "./adapters/index.js";
 import { VERSION, NPM_PACKAGE } from "./config.js";
+import { classifyError } from "./errors.js";
+export { classifyError } from "./errors.js";
 // ─── Provider Resolution ─────────────────────────────────────────────────────
 //
 // Reads env vars once at startup. Novada wins if multiple providers are set.
@@ -23,72 +24,7 @@ const MAX_CONCURRENT_RENDERS = (() => {
 })();
 let activeRenders = 0;
 // ─── Error Classification ─────────────────────────────────────────────────────
-export function classifyError(err) {
-    const ax = axios.isAxiosError(err);
-    const status = ax ? err.response?.status : undefined;
-    const msg = err instanceof Error ? err.message : String(err);
-    if (ax && status === 429)
-        return { ok: false, error: {
-                code: "RATE_LIMITED", message: "HTTP 429 — rate limited",
-                recoverable: true,
-                agent_instruction: "Wait 5 seconds and retry. Consider reducing request frequency.",
-                retry_after_seconds: 5
-            } };
-    if (ax && status === 404)
-        return { ok: false, error: {
-                code: "PAGE_NOT_FOUND",
-                message: "HTTP 404 — page not found",
-                recoverable: false,
-                agent_instruction: "The page does not exist at this URL. Verify the URL is correct. Do not retry."
-            } };
-    if (ax && status && status >= 400 && status < 500)
-        return { ok: false, error: {
-                code: "BOT_DETECTION_SUSPECTED",
-                message: `HTTP ${status} — request blocked by target`,
-                recoverable: true,
-                agent_instruction: "Try agentproxy_render (real browser). Or retry with a different country/session_id."
-            } };
-    if (msg.includes("timeout") || msg.includes("ECONNABORTED"))
-        return { ok: false, error: {
-                code: "TIMEOUT", message: "Request timed out",
-                recoverable: true,
-                agent_instruction: "Increase the timeout parameter or retry. For JS-heavy pages, use agentproxy_render.",
-                retry_after_seconds: 2
-            } };
-    // DNS failure — hostname not found. Check BEFORE TLS patterns (some proxies wrap DNS errors in SSL messages).
-    if (msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN") || msg.includes("getaddrinfo"))
-        return { ok: false, error: {
-                code: "NETWORK_ERROR", message: "DNS resolution failed — hostname not found",
-                recoverable: false,
-                agent_instruction: "The hostname could not be resolved. Verify the URL is correct and the domain exists.",
-            } };
-    if (msg.includes("TLS") || msg.includes("SSL") || msg.includes("socket disconnect") || msg.includes("secure TLS") || msg.includes("certificate") || msg.includes("issuer cert"))
-        return { ok: false, error: {
-                code: "TLS_ERROR", message: "TLS/SSL connection failed",
-                recoverable: true,
-                agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render.",
-                retry_after_seconds: 2
-            } };
-    if (msg.includes("No proxy provider") || msg.includes("not configured"))
-        return { ok: false, error: {
-                code: "PROVIDER_NOT_CONFIGURED", message: msg,
-                recoverable: false,
-                agent_instruction: "Set NOVADA_PROXY_USER and NOVADA_PROXY_PASS env vars and restart the MCP server."
-            } };
-    // Input validation errors — these come from validateXxxParams before any network call
-    const INPUT_ERROR_PHRASES = ["is required", "must be", "must start with", "must contain", "letters, numbers", "max 64", "max 50", "between 1 and"];
-    if (INPUT_ERROR_PHRASES.some(p => msg.includes(p)))
-        return { ok: false, error: {
-                code: "INVALID_INPUT", message: msg,
-                recoverable: false,
-                agent_instruction: "Fix the input parameters and retry. Check the tool's inputSchema for valid values."
-            } };
-    return { ok: false, error: {
-            code: "UNKNOWN_ERROR", message: msg,
-            recoverable: true,
-            agent_instruction: "Retry the request. Check agentproxy_status for network health."
-        } };
-}
+// classifyError is now in src/errors.ts — imported and re-exported above
 // ─── Tool Definitions ────────────────────────────────────────────────────────
 const TOOLS = [
     {
@@ -202,6 +138,23 @@ const TOOLS = [
         },
     },
     {
+        name: "agentproxy_crawl",
+        description: "Recursively crawl a website — BFS traversal from a starting URL to configurable depth. Returns all discovered URLs with metadata. Optionally includes page content inline.\n\nWHEN TO USE: Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page (agentproxy_map is single-page only).\nUSE agentproxy_map INSTEAD IF: You only need links from ONE page.\nUSE agentproxy_batch_fetch INSTEAD IF: You already have the URLs and just need content.\nWORKFLOW: crawl(depth=2) → get URL tree → batch_fetch the pages you need.\nNOTE: include_content=false (default) returns URLs only — fast and cheap. Set include_content=true to get page content inline (slower, costs 1 credit per page).\nCACHING: Pages already in cache from prior fetch/map/crawl calls cost 0 credits.",
+        inputSchema: {
+            type: "object",
+            properties: {
+                url: { type: "string", description: "Starting URL (domain root recommended for broadest coverage)" },
+                depth: { type: "number", default: 2, minimum: 1, maximum: 5, description: "Max crawl depth (1=same as map, 2+=recursive). Default 2." },
+                limit: { type: "number", default: 50, minimum: 10, maximum: 200, description: "Max total URLs to discover (10-200). Default 50." },
+                include_content: { type: "boolean", default: false, description: "Include page content in response (default: false = URLs only, fast). Set true for inline content (slower, 1 credit per page)." },
+                country: { type: "string", description: "2-letter country code for geo-targeting (e.g. US, DE, JP)" },
+                timeout: { type: "number", default: 60, description: "Per-page timeout in seconds (1-120)" },
+                format: { type: "string", enum: ["markdown", "raw"], default: "markdown", description: "Content format when include_content=true" },
+            },
+            required: ["url"],
+        },
+    },
+    {
         name: "agentproxy_status",
         description: "Check proxy connectivity and provider health. Returns structured JSON with ok, data.connectivity.status (HEALTHY/DEGRADED/UNAVAILABLE) and data.connectivity.proxy_ip (verified via live proxy call).\n\nWHEN TO USE: Before starting a large scraping workflow, or to diagnose proxy failures.\nNOTE: Live connectivity check — makes one proxy request to httpbin.org/ip on every call.",
         inputSchema: {
@@ -291,6 +244,12 @@ class NovadaProxyServer {
                         if (!proxyContext)
                             return this.missingProxyError();
                         result = await agentproxyMap(validateMapParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        break;
+                    }
+                    case "agentproxy_crawl": {
+                        if (!proxyContext)
+                            return this.missingProxyError();
+                        result = await agentproxyCrawl(validateCrawlParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
                     case "agentproxy_status": {
