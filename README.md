@@ -23,7 +23,8 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 </p>
 
 <p align="center">
-  <a href="https://lobehub.com/mcp/novadalabs-proxy4agent"><img src="https://lobehub.com/badge/mcp/novadalabs-proxy4agent" alt="LobeHub"></a>
+  <a href="https://lobehub.com/mcp/novadalabs-proxy4agent"><img src="https://lobehub.com/badge/mcp/novadalabs-proxy4agent" alt="LobeHub MCP"></a>
+  <a href="https://lobehub.com/mcp/novadalabs-proxy4agent"><img src="https://lobehub.com/badge/mcp-full/novadalabs-proxy4agent?theme=light" alt="LobeHub MCP Full"></a>
   <a href="https://smithery.ai/server/proxy4agent"><img src="https://smithery.ai/badge/proxy4agent" alt="Smithery"></a>
   <a href="https://mcp.run"><img src="https://img.shields.io/badge/MCP-Registry-blueviolet?style=flat-square" alt="MCP Registry"></a>
 </p>
