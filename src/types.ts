@@ -1,7 +1,6 @@
 export type ProxyErrorCode =
   | "BOT_DETECTION_SUSPECTED"
   | "SESSION_STICKINESS_FAILED"
-  | "PAGE_NOT_FOUND"
   | "RATE_LIMITED"
   | "INVALID_INPUT"
   | "TIMEOUT"

@@ -1,4 +1,4 @@
-export const VERSION = "1.8.0";
+export const VERSION = "1.8.1";
 // npm package name — used in CLI help and error messages
 export const NPM_PACKAGE = "novada-proxy-mcp";
 

@@ -12,7 +12,8 @@ export interface CrawlPageResult {
     url: string;
     depth: number;
     status_code?: number;
-    links_found: number;
+    total_links: number;
+    new_links: number;
     content?: string;
     error?: string;
 }

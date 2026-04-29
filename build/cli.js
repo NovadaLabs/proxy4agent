@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { resolveAdapter, listAdapters } from "./adapters/index.js";
-import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyRender, validateRenderParams, agentproxySession, validateSessionParams, agentproxyStatus, } from "./tools/index.js";
+import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyCrawl, validateCrawlParams, agentproxyRender, validateRenderParams, agentproxySession, validateSessionParams, agentproxyStatus, } from "./tools/index.js";
 import { classifyError } from "./errors.js";
 import { VERSION, NPM_PACKAGE } from "./config.js";
 // ─── Credential Resolution ──────────────────────────────────────────────────
@@ -191,6 +191,7 @@ Commands:
   search <query>           Web search via Google
   extract <url>            Extract structured fields from URL
   map <url>                Discover all internal links on a page
+  crawl <url>              Recursively crawl a site (BFS, depth 1-5)
   render <url>             Render JS-heavy page with Chromium
   session <id> <url>       Sticky session fetch (same IP)
   status                   Check proxy health
@@ -268,6 +269,16 @@ Options:
   --format <fmt>       Output format: markdown (default) or raw
   --timeout <sec>      Timeout in seconds, 1-120 (default: 60)
   --verify_sticky      Verify IP consistency with second httpbin call
+  --human              Pretty-print output for humans`,
+        crawl: `Usage: novada-proxy crawl <url> [options]
+
+Options:
+  --depth <N>          Max crawl depth, 1-5 (default: 2)
+  --limit <N>          Max URLs to discover, 10-200 (default: 50)
+  --include_content    Include page content in response (default: URLs only)
+  --country <CC>       2-letter country code
+  --timeout <sec>      Per-page timeout in seconds, 1-120 (default: 60)
+  --format <fmt>       Content format: markdown (default) or raw
   --human              Pretty-print output for humans`,
         status: `Usage: novada-proxy status [options]
 
@@ -479,6 +490,48 @@ async function handleMap(args) {
         writeJson(JSON.parse(result));
     }
 }
+async function handleCrawl(args) {
+    const { values, positionals } = parseArgs({
+        args,
+        options: {
+            depth: { type: "string" },
+            limit: { type: "string" },
+            include_content: { type: "boolean", default: false },
+            country: { type: "string" },
+            timeout: { type: "string" },
+            format: { type: "string" },
+            human: { type: "boolean", default: false },
+            help: { type: "boolean", short: "h", default: false },
+        },
+        allowPositionals: true,
+        strict: false,
+    });
+    if (values.help) {
+        printSubcommandHelp("crawl");
+        return;
+    }
+    const url = positionals[0];
+    if (!url)
+        invalidArgs("crawl", "Missing required argument: <url>");
+    if (!proxyContext)
+        missingProxyError();
+    const params = validateCrawlParams({
+        url,
+        depth: values.depth !== undefined ? Number(values.depth) : undefined,
+        limit: values.limit !== undefined ? Number(values.limit) : undefined,
+        include_content: values.include_content,
+        country: values.country,
+        timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
+        format: values.format,
+    });
+    const result = await agentproxyCrawl(params, proxyContext.adapter, proxyContext.credentials);
+    if (values.human) {
+        prettyPrint(result);
+    }
+    else {
+        writeJson(JSON.parse(result));
+    }
+}
 async function handleRender(args) {
     const { values, positionals } = parseArgs({
         args,
@@ -601,6 +654,9 @@ async function main() {
                 break;
             case "map":
                 await handleMap(restArgs);
+                break;
+            case "crawl":
+                await handleCrawl(restArgs);
                 break;
             case "render":
                 await handleRender(restArgs);

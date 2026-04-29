@@ -15,10 +15,10 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tools-8-orange?style=flat-square" alt="8 tools">
+  <img src="https://img.shields.io/badge/tools-9-orange?style=flat-square" alt="9 tools">
   <img src="https://img.shields.io/badge/prompts-5-blue?style=flat-square" alt="5 prompts">
   <img src="https://img.shields.io/badge/resources-5-green?style=flat-square" alt="5 resources">
-  <img src="https://img.shields.io/badge/tests-241-brightgreen?style=flat-square" alt="241 tests">
+  <img src="https://img.shields.io/badge/tests-307-brightgreen?style=flat-square" alt="307 tests">
   <img src="https://img.shields.io/badge/providers-5-purple?style=flat-square" alt="5 providers">
 </p>
 
@@ -36,7 +36,7 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 <p align="center">
   <a href="#why-novada-proxy">Why</a> &middot;
   <a href="#quick-install">Install</a> &middot;
-  <a href="#8-tools-at-a-glance">Tools</a> &middot;
+  <a href="#9-tools-at-a-glance">Tools</a> &middot;
   <a href="#5-prompts">Prompts</a> &middot;
   <a href="#5-resources">Resources</a> &middot;
   <a href="#providers">Providers</a> &middot;
@@ -49,6 +49,52 @@ Works with **Claude Code**, **Cursor**, **Windsurf**, **Cline**, **Continue**, a
 
 > [!TIP]
 > **Free tier available** — sign up at [novada.com](https://www.novada.com), no credit card required. Get free access to Scraper API, Web Unblocker, and residential proxies to start building immediately.
+
+---
+
+## Getting Started
+
+<p align="center">
+  <a href="https://www.novada.com"><img src="https://img.shields.io/badge/1-Sign_Up_at_novada.com-5D34F2?style=for-the-badge" alt="Step 1"></a>
+  <a href="https://dashboard.novada.com/overview/res/endpoint-generator/"><img src="https://img.shields.io/badge/2-Get_Proxy_Credentials-0EA5E9?style=for-the-badge" alt="Step 2"></a>
+  <a href="#quick-install"><img src="https://img.shields.io/badge/3-Install_&_Run-10B981?style=for-the-badge" alt="Step 3"></a>
+</p>
+
+### For Humans
+
+1. **Create a free account** at [novada.com](https://www.novada.com) — no credit card required
+2. **Get your credentials** at [Dashboard → Residential Proxies → Endpoint Generator](https://dashboard.novada.com/overview/res/endpoint-generator/) — copy your username and password
+3. **Install and run:**
+
+```bash
+# Claude Code
+claude mcp add novada-proxy-mcp \
+  -e NOVADA_PROXY_USER=your_username \
+  -e NOVADA_PROXY_PASS=your_password \
+  -- npx -y novada-proxy-mcp
+
+# Or use the CLI directly
+npx novada-proxy-mcp status
+npx novada-proxy fetch https://example.com
+```
+
+### For Agents
+
+> [!NOTE]
+> **Agents:** Tell your human to complete steps 1-2 above. Once credentials are set as environment variables, all 9 tools are available immediately. No API key rotation, no token refresh — proxy credentials are persistent.
+
+```
+Required env vars:
+  NOVADA_PROXY_USER   — from novada.com dashboard
+  NOVADA_PROXY_PASS   — from novada.com dashboard
+
+Optional (for extra features):
+  NOVADA_API_KEY      — enables agentproxy_search (Google search)
+  NOVADA_BROWSER_WS   — enables agentproxy_render (JS rendering)
+  NOVADA_PROXY_ZONE   — "res" (default), "isp", or "dcp"
+```
+
+**Need help?** Contact [support@novada.com](mailto:support@novada.com)
 
 ---
 
@@ -70,7 +116,7 @@ AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests
 
 ---
 
-## 8 Tools at a Glance
+## 9 Tools at a Glance
 
 | Tool | What It Does | Requires |
 |------|-------------|---------|
@@ -78,6 +124,7 @@ AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests
 | `agentproxy_batch_fetch` | Fetch 2–20 URLs concurrently (up to 5x parallel) | Proxy credentials |
 | `agentproxy_extract` | Extract structured fields (title, price, rating...) from any URL | Proxy credentials |
 | `agentproxy_map` | Crawl a URL and return all internal links as JSON array | Proxy credentials |
+| `agentproxy_crawl` | Recursively crawl a site (BFS, depth 1-5) with URL discovery | Proxy credentials |
 | `agentproxy_session` | Sticky session — same IP across every call | Proxy credentials |
 | `agentproxy_search` | Google search -> structured JSON (title, url, snippet) | `NOVADA_API_KEY` |
 | `agentproxy_render` | Render JS-heavy pages with real Chromium [BETA] | `NOVADA_BROWSER_WS` |
@@ -577,19 +624,45 @@ Every error response includes a typed `error.code`, `recoverable` flag, and `age
 
 ---
 
+## Real-World Test Results
+
+Tested across 3 Novada proxy types with 33 real-world tests (2026-04-28):
+
+| Proxy Type | Tests | Pass | Notes |
+|-----------|:-----:|:----:|-------|
+| Residential | 11 | 9 | Wikipedia, Shopify, HackerNews, geo-targeting work. Sticky sessions require endpoint config. |
+| ISP | 7 | 7 | All tools work including sticky sessions (`session_verified: true`). |
+| Datacenter | 8 | 8 | Fast, cost-effective. Anti-bot sites (Amazon, CNN) may block datacenter IPs — use residential for those. |
+| Error handling | 7 | 7 | All error codes return structured JSON with `agent_instruction`. |
+
+**Success rate: 94% (31/33 pass)**. Failures are proxy-type limitations (datacenter on anti-bot sites), not code bugs.
+
+### Proxy Type Guide
+
+| Use Case | Recommended Proxy | Why |
+|----------|------------------|-----|
+| Anti-bot sites (Amazon, LinkedIn, CNN) | Residential | Real home IPs, hardest to detect |
+| Fast bulk scraping | Datacenter | Lowest latency, cheapest per GB |
+| Sticky sessions (login flows) | ISP | 6-hour sticky, stable IPs |
+| General scraping | Any | All types handle most sites |
+
+---
+
 ## Known Limitations
 
-- Sites requiring full JS execution -> use `agentproxy_render`
-- `agentproxy_render` requires `NOVADA_BROWSER_WS` (separate Novada Browser API subscription)
-- Session IDs must not contain hyphens (Novada uses `-` as its auth delimiter)
-- Sticky sessions are best-effort infrastructure — use `verify_sticky: true` to confirm before relying on them
-- API-protected sites (ip-api.com, similar) block proxy IP ranges — `agentproxy_render` may help
+| Limitation | Workaround |
+|-----------|-----------|
+| Datacenter IPs blocked on anti-bot sites | Use residential or ISP proxy type (`NOVADA_PROXY_ZONE=res`) |
+| Proxy-side DNS errors surface as `TLS_ERROR` | Check if domain exists before retrying with different country |
+| CLI is stateless (no cross-invocation cache) | Use MCP server for cache benefits, or re-fetch same URLs within one CLI batch |
+| `agentproxy_render` requires Browser API key | Set `NOVADA_BROWSER_WS` env var — get it from novada.com dashboard |
+| Extraction uses heuristics, not LLM | For complex extraction, use `fetch(format="raw")` and parse yourself |
 
 ---
 
 ## Feedback & Support
 
-- **Email:** [tong.wu@novada.com](mailto:tong.wu@novada.com)
+- **Email:** [support@novada.com](mailto:support@novada.com)
 - **GitHub Issues:** [github.com/NovadaLabs/proxy4agent/issues](https://github.com/NovadaLabs/proxy4agent/issues)
 - **Website:** [novada.com](https://www.novada.com)
 
@@ -613,14 +686,14 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 
 <p align="center">
   <a href="#novada-proxy"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="返回英文"></a>
-  <img src="https://img.shields.io/badge/工具-8个-orange?style=flat-square" alt="8 个工具">
+  <img src="https://img.shields.io/badge/工具-9个-orange?style=flat-square" alt="9 个工具">
   <img src="https://img.shields.io/badge/提示词-5个-blue?style=flat-square" alt="5 个提示词">
   <img src="https://img.shields.io/badge/资源-5个-green?style=flat-square" alt="5 个资源">
-  <img src="https://img.shields.io/badge/测试-241个-brightgreen?style=flat-square" alt="241 个测试">
+  <img src="https://img.shields.io/badge/测试-307个-brightgreen?style=flat-square" alt="307 个测试">
 </p>
 
 <p align="center">
-  <a href="#8-个工具">工具</a> &middot;
+  <a href="#9-个工具">工具</a> &middot;
   <a href="#5-个提示词">提示词</a> &middot;
   <a href="#5-个资源">资源</a> &middot;
   <a href="#快速安装">安装</a> &middot;
@@ -637,13 +710,14 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 
 ---
 
-## 8 个工具
+## 9 个工具
 
 ```
 agentproxy_fetch       → 通过住宅代理抓取任意 URL
 agentproxy_batch_fetch → 并发抓取 2-20 个 URL（最高 5 倍加速）
 agentproxy_extract     → 从页面提取结构化字段（标题、价格、评分…）
 agentproxy_map         → 爬取页面，返回所有内部链接 JSON 数组
+agentproxy_crawl       → 递归爬取站点（BFS，深度 1-5），自动发现 URL
 agentproxy_session     → 粘性会话 — 同一 session_id 始终同一 IP
 agentproxy_search      → Google 搜索，返回结构化 JSON（无需解析 HTML）
 agentproxy_render      → 真实 Chromium 渲染 JS 页面 [BETA]
@@ -1012,7 +1086,7 @@ claude mcp add novada-proxy-mcp \
 
 ## 反馈与支持
 
-- **邮箱：** [tong.wu@novada.com](mailto:tong.wu@novada.com)
+- **邮箱：** [support@novada.com](mailto:support@novada.com)
 - **GitHub Issues：** [github.com/NovadaLabs/proxy4agent/issues](https://github.com/NovadaLabs/proxy4agent/issues)
 - **官网：** [novada.com](https://www.novada.com)
 

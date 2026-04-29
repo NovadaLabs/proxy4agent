@@ -25,6 +25,7 @@ describe("NovadaAdapter", () => {
       pass: "pass1",
       host: "super.novada.pro",
       port: "7777",
+      zone: "res",
     });
   });
 
@@ -57,7 +58,7 @@ describe("NovadaAdapter", () => {
       city: "NewYork",
       session_id: "abc123",
     });
-    expect(url).toContain("user1-zone-res-region-us-city-newyork-session-abc123");
+    expect(url).toContain("user1-zone-res-region-us-city-newyork-session-abc123-sessTime-5");
     expect(url).toContain(encodeURIComponent("p@ss"));
     expect(url).toContain("h.com:7777");
   });

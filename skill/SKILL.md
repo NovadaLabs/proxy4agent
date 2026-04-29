@@ -78,7 +78,8 @@ Need to fetch a URL?
 
 Need multiple URLs?
   Have the URLs already        -> agentproxy_batch_fetch (2-20 URLs, up to 5x parallel)
-  Need to discover URLs first  -> agentproxy_map -> agentproxy_batch_fetch
+  Need links from ONE page     -> agentproxy_map -> agentproxy_batch_fetch
+  Need to crawl a whole site   -> agentproxy_crawl (recursive BFS, depth 1-5)
 
 Need to find URLs by topic?    -> agentproxy_search -> agentproxy_batch_fetch
 
@@ -95,6 +96,7 @@ Need to check connectivity?    -> agentproxy_status
 | `agentproxy_batch_fetch` | Fetch 2-20 URLs concurrently | 1/URL | `urls`, `concurrency` (1-5), `country` |
 | `agentproxy_extract` | Extract structured fields from URL | 1 (5 if render fallback) | `url`, `fields[]`, `render_fallback` |
 | `agentproxy_map` | Discover all internal links on a page | 1 | `url`, `limit` (10-200) |
+| `agentproxy_crawl` | Recursive site crawl (BFS, depth 1-5) | 1/page | `url`, `depth` (1-5), `limit`, `include_content` |
 | `agentproxy_session` | Sticky session (same IP across calls) | 1 (3 if verify) | `session_id`, `url`, `verify_sticky` |
 | `agentproxy_search` | Google search as structured JSON | 1 | `query`, `num` (1-20), `country` |
 | `agentproxy_render` | Render JS pages via real Chromium [BETA] | 5 | `url`, `format`, `wait_for` (CSS selector) |
@@ -159,6 +161,7 @@ agentproxy_extract(url, fields=["title","price","rating"], render_fallback=true)
 | batch_fetch | 1 per URL | Yes |
 | extract | 1 (5 if render fallback) | No |
 | map | 1 | No |
+| crawl | 1 per page crawled | Yes (pages use fetch cache) |
 | session | 1 (3 if verify_sticky) | Never (sticky routing) |
 | search | 1 | No |
 | render | 5 | No |

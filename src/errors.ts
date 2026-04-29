@@ -12,17 +12,11 @@ export function classifyError(err: unknown): ProxyErrorResponse {
     agent_instruction: "Wait 5 seconds and retry. Consider reducing request frequency.",
     retry_after_seconds: 5
   }};
-  if (ax && status === 404) return { ok: false, error: {
-    code: "PAGE_NOT_FOUND",
-    message: "HTTP 404 — page not found",
-    recoverable: false,
-    agent_instruction: "The page does not exist at this URL. Verify the URL is correct. Do not retry."
-  }};
   if (ax && status && status >= 400 && status < 500) return { ok: false, error: {
     code: "BOT_DETECTION_SUSPECTED",
     message: `HTTP ${status} — request blocked by target`,
     recoverable: true,
-    agent_instruction: "Try agentproxy_render (real browser). Or retry with a different country/session_id."
+    agent_instruction: "Try agentproxy_render (real browser). Or retry with a different country/session_id. If render also returns 4xx, the page may genuinely not exist — stop retrying."
   }};
   if (msg.includes("timeout") || msg.includes("ECONNABORTED")) return { ok: false, error: {
     code: "TIMEOUT", message: "Request timed out",
@@ -38,7 +32,7 @@ export function classifyError(err: unknown): ProxyErrorResponse {
   if (msg.includes("TLS") || msg.includes("SSL") || msg.includes("socket disconnect") || msg.includes("secure TLS") || msg.includes("certificate") || msg.includes("issuer cert")) return { ok: false, error: {
     code: "TLS_ERROR", message: "TLS/SSL connection failed",
     recoverable: true,
-    agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render.",
+    agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render. If this is an unrecognized domain, verify it exists — proxy-side DNS failures may appear as TLS errors.",
     retry_after_seconds: 2
   }};
   if (msg.includes("No proxy provider") || msg.includes("not configured")) return { ok: false, error: {

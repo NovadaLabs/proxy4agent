@@ -86,7 +86,21 @@ export async function agentproxyBatchFetch(
       };
     } catch (err) {
       const latency_ms = Date.now() - start;
-      const msg = err instanceof Error ? err.message : String(err);
+      let msg = err instanceof Error ? err.message : String(err);
+
+      // Redact credentials from per-URL error messages (proxy URLs may leak in TLS errors)
+      for (const field of adapter.sensitiveFields) {
+        const val = credentials[field];
+        if (val) {
+          msg = msg.replaceAll(val, "***");
+          msg = msg.replaceAll(encodeURIComponent(val), "***");
+        }
+      }
+      const user = credentials["user"];
+      if (user) {
+        msg = msg.replaceAll(user, "***");
+        msg = msg.replaceAll(encodeURIComponent(user), "***");
+      }
 
       // Infer error code from message
       let code = "UNKNOWN_ERROR";
@@ -94,7 +108,7 @@ export async function agentproxyBatchFetch(
       else if (msg.includes("timeout") || msg.includes("ECONNABORTED")) code = "TIMEOUT";
       else if (msg.includes("TLS") || msg.includes("SSL")) code = "TLS_ERROR";
       else if (msg.includes("blocked") || msg.includes("403") || msg.includes("401")) code = "BOT_DETECTION_SUSPECTED";
-      else if (msg.includes("http://") || msg.includes("https://") || msg.includes("must start with")) code = "INVALID_INPUT";
+      else if (msg.includes("must start with")) code = "INVALID_INPUT";
 
       return {
         url,

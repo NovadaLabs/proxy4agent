@@ -58,7 +58,7 @@ export async function agentproxyExtract(params, adapter, credentials, browserWsE
     // Extract each requested field using pattern-based heuristics
     const extractedFields = {};
     for (const field of fields) {
-        extractedFields[field] = extractField(html, field);
+        extractedFields[field] = extractField(html, field, url);
     }
     const result = {
         ok: true,
@@ -92,7 +92,7 @@ export async function agentproxyExtract(params, adapter, credentials, browserWsE
  * Uses common patterns: meta tags, Open Graph, Schema.org JSON-LD, headings,
  * and semantic HTML. Falls back to regex scanning for common field names.
  */
-export function extractField(html, field) {
+export function extractField(html, field, baseUrl) {
     const f = field.toLowerCase().trim();
     // --- Title ---
     if (f === "title" || f === "name" || f === "product_name") {
@@ -127,6 +127,7 @@ export function extractField(html, field) {
     if (f === "image" || f === "thumbnail" || f === "photo") {
         return (extractMetaContent(html, "og:image") ??
             extractJsonLd(html, "image") ??
+            extractFirstImage(html, baseUrl) ??
             null);
     }
     // --- Rating / Reviews ---
@@ -161,7 +162,7 @@ export function extractField(html, field) {
     }
     // --- Links (returns array) ---
     if (f === "links" || f === "urls") {
-        return extractAllLinks(html);
+        return extractAllLinks(html, baseUrl);
     }
     // --- Headings (returns array) ---
     if (f === "headings" || f === "h1" || f === "h2") {
@@ -223,14 +224,25 @@ function extractAllTags(html, tag) {
     }
     return results.length ? results : [];
 }
-function extractAllLinks(html) {
+function extractAllLinks(html, baseUrl) {
     const re = /<a[^>]+href=["']([^"']+)["']/gi;
     const results = [];
     let m;
     while ((m = re.exec(html)) !== null) {
         const href = m[1];
-        if (href && href.startsWith("http") && !results.includes(href)) {
-            results.push(href);
+        if (!href)
+            continue;
+        let resolved = href;
+        if (!href.startsWith("http") && baseUrl) {
+            try {
+                resolved = new URL(href, baseUrl).toString();
+            }
+            catch {
+                continue;
+            }
+        }
+        if (resolved.startsWith("http") && !results.includes(resolved)) {
+            results.push(resolved);
         }
     }
     return results.slice(0, 50); // cap at 50 links
@@ -239,16 +251,57 @@ function extractCanonical(html) {
     const m = html.match(/<link[^>]+rel=["']canonical["'][^>]+href=["']([^"']+)["']/i);
     return m?.[1] ?? null;
 }
+const SKIP_IMAGE_PATTERNS = /icon|logo|pixel|tracking|1x1|spacer/i;
+function extractFirstImage(html, baseUrl) {
+    const re = /<img[^>]+src=["']([^"']+)["']/gi;
+    let m;
+    while ((m = re.exec(html)) !== null) {
+        const src = m[1];
+        if (!src || SKIP_IMAGE_PATTERNS.test(src))
+            continue;
+        if (src.startsWith("data:"))
+            continue;
+        if (src.startsWith("http"))
+            return src;
+        if (baseUrl) {
+            try {
+                return new URL(src, baseUrl).toString();
+            }
+            catch {
+                continue;
+            }
+        }
+    }
+    return null;
+}
 function extractPriceFromHtml(html) {
-    // Common price patterns: $29.99, €19,99, ¥1,999
-    const priceRe = /(?:class=["'][^"']*price[^"']*["'][^>]*>)\s*[^<]*?([$€£¥]\s*[\d,.]+)/i;
-    const m = html.match(priceRe);
+    // Strategy 1: price inside an element with "price" in its class (most reliable)
+    const priceClassRe = /(?:class=["'][^"']*price[^"']*["'][^>]*>)\s*[^<]*?([$€£¥]\s*[\d,.]+)/i;
+    const m = priceClassRe.exec(html);
     if (m?.[1])
         return m[1].trim();
-    // Fallback: any currency pattern in the page
-    const genericPriceRe = /([$€£¥]\s*\d[\d,.]*)/;
-    const gm = html.match(genericPriceRe);
-    return gm?.[1]?.trim() ?? null;
+    // Strategy 2: collect ALL currency patterns, return the most likely product price
+    // (skip very small amounts like $0, $1, $2 which are often shipping thresholds or discounts)
+    const allPricesRe = /([$€£¥])\s*(\d[\d,.]*)/g;
+    const prices = [];
+    let pm;
+    while ((pm = allPricesRe.exec(html)) !== null) {
+        const raw = `${pm[1]}${pm[2]}`.trim();
+        const value = parseFloat(pm[2].replace(/,/g, ""));
+        if (Number.isFinite(value) && value > 0)
+            prices.push({ raw, value });
+    }
+    if (prices.length === 0)
+        return null;
+    // Filter out likely noise: prices under $5 are usually shipping/discount thresholds
+    const plausible = prices.filter(p => p.value >= 5);
+    if (plausible.length > 0) {
+        // Return the first plausible price (most likely the product price in page order)
+        return plausible[0].raw;
+    }
+    // If all prices are under $5, return the highest one
+    prices.sort((a, b) => b.value - a.value);
+    return prices[0].raw;
 }
 export function deepFind(obj, key, depth = 0) {
     if (depth > 20)

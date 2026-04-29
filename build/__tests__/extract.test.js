@@ -48,6 +48,18 @@ describe("extractField", () => {
         const html = '<meta property="og:image" content="https://example.com/img.jpg">';
         expect(extractField(html, "image")).toBe("https://example.com/img.jpg");
     });
+    it("falls back to first substantive <img> when og:image and JSON-LD missing", () => {
+        const html = '<img src="/assets/icon-small.png"><img src="https://cdn.bbc.com/article-hero.jpg"><img src="/photo2.jpg">';
+        expect(extractField(html, "image")).toBe("https://cdn.bbc.com/article-hero.jpg");
+    });
+    it("skips tiny/tracking images in fallback", () => {
+        const html = '<img src="https://track.com/pixel.gif"><img src="/logo.svg"><img src="/spacer.png"><img src="https://cdn.com/real-photo.jpg">';
+        expect(extractField(html, "image")).toBe("https://cdn.com/real-photo.jpg");
+    });
+    it("returns null when only icon/logo/tracking images exist", () => {
+        const html = '<img src="/favicon-icon.png"><img src="/site-logo.svg"><img src="/1x1.gif">';
+        expect(extractField(html, "image")).toBeNull();
+    });
     // --- Rating / Reviews ---
     it("extracts rating from JSON-LD ratingValue", () => {
         const html = '<script type="application/ld+json">{"aggregateRating":{"ratingValue":"4.5"}}</script>';
@@ -67,12 +79,25 @@ describe("extractField", () => {
         expect(extractField(html, "url")).toBe("https://og.example.com/page");
     });
     // --- Links ---
-    it("extracts links as array of absolute URLs", () => {
+    it("extracts links as array of absolute URLs (no baseUrl)", () => {
         const html = '<a href="https://a.com">A</a><a href="https://b.com">B</a><a href="/relative">R</a>';
         const links = extractField(html, "links");
         expect(links).toContain("https://a.com");
         expect(links).toContain("https://b.com");
         expect(links).not.toContain("/relative");
+    });
+    it("resolves relative URLs when baseUrl is provided", () => {
+        const html = '<a href="https://a.com">A</a><a href="/news/world-123">R</a><a href="page">P</a>';
+        const links = extractField(html, "links", "https://www.bbc.com/news");
+        expect(links).toContain("https://a.com");
+        expect(links).toContain("https://www.bbc.com/news/world-123");
+        expect(links).toContain("https://www.bbc.com/page");
+    });
+    it("does not include non-http schemes when resolving relative URLs", () => {
+        const html = '<a href="https://valid.com">V</a><a href="javascript:void(0)">J</a><a href="mailto:a@b.com">M</a>';
+        const links = extractField(html, "links", "https://example.com");
+        expect(links).toContain("https://valid.com");
+        expect(links).toHaveLength(1);
     });
     it("deduplicates links", () => {
         const html = '<a href="https://a.com">1</a><a href="https://a.com">2</a>';
@@ -158,5 +183,77 @@ describe("extractField", () => {
         // deepFind should find "name" inside the nested brand object
         // But the field "name" maps to the title branch, so use a direct field:
         expect(extractField(html, "brand")).toBe('{"@type":"Brand","name":"Acme"}');
+    });
+    // ─── F3 fix tests: image fallback to <img> tag ──────────────────────────────
+    it("should extract image from <img> tag when og:image and JSON-LD are absent", () => {
+        // No og:image, no JSON-LD — should fall back to first <img> tag
+        const html = `<html><body>
+      <img src="https://example.com/hero.jpg" alt="Hero image">
+      <img src="https://example.com/other.jpg" alt="Other image">
+    </body></html>`;
+        const result = extractField(html, "image");
+        expect(result).toBe("https://example.com/hero.jpg");
+    });
+    it("should skip tiny/tracking images (icon, pixel, spacer) in image fallback", () => {
+        // All images have tracking/icon patterns — should skip them and return null
+        const html = `<html><body>
+      <img src="https://example.com/pixel.gif" alt="">
+      <img src="https://example.com/tracking-pixel.png" alt="">
+      <img src="https://example.com/icon-small.svg" alt="">
+      <img src="https://example.com/spacer.gif" alt="">
+    </body></html>`;
+        const result = extractField(html, "image");
+        // All images match skip patterns (pixel, tracking, icon, spacer) → null
+        expect(result).toBeNull();
+    });
+    it("should skip icon images but find the first valid one", () => {
+        const html = `<html><body>
+      <img src="https://example.com/favicon-icon.png" alt="">
+      <img src="https://example.com/logo-icon.svg" alt="">
+      <img src="https://example.com/product-photo.jpg" alt="Product">
+    </body></html>`;
+        const result = extractField(html, "image");
+        expect(result).toBe("https://example.com/product-photo.jpg");
+    });
+    it("should prefer og:image over <img> fallback", () => {
+        const html = `
+      <meta property="og:image" content="https://example.com/og.jpg">
+      <img src="https://example.com/fallback.jpg" alt="">
+    `;
+        expect(extractField(html, "image")).toBe("https://example.com/og.jpg");
+    });
+    // ─── F3 fix tests: relative URL resolution in links ─────────────────────────
+    it("should resolve relative hrefs when baseUrl is provided", () => {
+        const html = `
+      <a href="/about">About</a>
+      <a href="/contact">Contact</a>
+      <a href="https://example.com/absolute">Absolute</a>
+    `;
+        const links = extractField(html, "links", "https://example.com");
+        expect(links).toContain("https://example.com/about");
+        expect(links).toContain("https://example.com/contact");
+        expect(links).toContain("https://example.com/absolute");
+    });
+    it("should still work without baseUrl (backward compatible)", () => {
+        const html = `
+      <a href="https://a.com/page">A</a>
+      <a href="/relative">Relative</a>
+    `;
+        // Without baseUrl, relative URLs cannot be resolved and should be skipped
+        const linksNoBase = extractField(html, "links");
+        expect(linksNoBase).toContain("https://a.com/page");
+        // Relative URLs without baseUrl should NOT appear in the result
+        expect(linksNoBase).not.toContain("/relative");
+    });
+    it("should resolve relative paths with subdirectory baseUrl", () => {
+        const html = `
+      <a href="../sibling">Sibling</a>
+      <a href="child">Child</a>
+    `;
+        const links = extractField(html, "links", "https://example.com/docs/page");
+        // ../sibling from /docs/page → /sibling
+        expect(links).toContain("https://example.com/sibling");
+        // child from /docs/page → /docs/child
+        expect(links).toContain("https://example.com/docs/child");
     });
 });

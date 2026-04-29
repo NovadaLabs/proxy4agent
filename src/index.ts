@@ -548,7 +548,6 @@ class NovadaProxyServer {
    - TIMEOUT → increase timeout parameter or try a different country
    - TLS_ERROR → try agentproxy_render instead, or a different country
    - BOT_DETECTION_SUSPECTED → use agentproxy_render for this site
-   - PAGE_NOT_FOUND → verify the URL is correct
    - RATE_LIMITED → wait 5 seconds and retry
    - PROVIDER_NOT_CONFIGURED → credentials are missing, check env vars
 4. Report: what worked, what failed, and recommended next action.`,
@@ -634,8 +633,7 @@ class NovadaProxyServer {
       if (uri === "proxy://error-codes") {
         const errorCodes = {
           error_codes: [
-            { code: "BOT_DETECTION_SUSPECTED", recoverable: true, http_status: "4xx (except 404, 429)", action: "Retry with agentproxy_render or different country parameter" },
-            { code: "PAGE_NOT_FOUND", recoverable: false, http_status: "404", action: "Verify the URL is correct. Do not retry." },
+            { code: "BOT_DETECTION_SUSPECTED", recoverable: true, http_status: "4xx (except 429)", action: "Retry with agentproxy_render or different country parameter" },
             { code: "TLS_ERROR", recoverable: true, cause: "TLS/SSL handshake failed through proxy", action: "Retry with different country parameter" },
             { code: "TIMEOUT", recoverable: true, cause: "Request exceeded timeout limit", action: "Increase timeout parameter (max 120s) or retry" },
             { code: "RATE_LIMITED", recoverable: true, http_status: "429", action: "Wait 5 seconds and retry. Reduce request frequency." },
@@ -760,6 +758,9 @@ class NovadaProxyServer {
               "  agentproxy_batch_fetch → 1 per URL (minus cache hits)",
               "  agentproxy_extract   → 1 credit (5 if render_fallback triggered)",
               "  agentproxy_map       → 1 credit",
+              "  agentproxy_crawl    → 1 credit per page (0 if cache_hit=true)",
+              "  NOTE: with include_content=true and format=markdown, crawl makes 2 fetches per page",
+              "  (one for content, one for link extraction). Budget up to 2 credits per page in that mode.",
               "  agentproxy_session   → 1 credit (3 if verify_sticky=true)",
               "  agentproxy_search    → 1 credit",
               "  agentproxy_render    → 5 credits (Browser API metered separately)",

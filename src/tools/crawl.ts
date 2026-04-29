@@ -17,7 +17,8 @@ export interface CrawlPageResult {
   url: string;
   depth: number;
   status_code?: number;
-  links_found: number;
+  total_links: number;      // all extracted links before deduplication
+  new_links: number;        // links not yet seen globally
   content?: string;         // only if include_content=true
   error?: string;           // if this page failed
 }
@@ -33,9 +34,11 @@ function extractInternalLinks(
   origin: string,
   hostname: string,
   seen: Set<string>
-): string[] {
+): { allLinks: string[]; newLinks: string[] } {
   const hrefRe = /<a[^>]+href=["']([^"'#?][^"']*)["']/gi;
-  const found: string[] = [];
+  const allLinks: string[] = [];
+  const newLinks: string[] = [];
+  const pageDedup = new Set<string>(); // dedup within this page
 
   let match: RegExpExecArray | null;
   while ((match = hrefRe.exec(html)) !== null) {
@@ -52,8 +55,6 @@ function extractInternalLinks(
     // Normalise: strip trailing slash
     resolved = resolved.replace(/\/$/, "");
 
-    if (seen.has(resolved)) continue;
-
     // Must be same domain or subdomain
     let resolvedHostname: string;
     try {
@@ -68,11 +69,21 @@ function extractInternalLinks(
       if (/\.(css|js|png|jpg|jpeg|gif|svg|ico|woff2?|ttf|eot|pdf|zip|tar|gz)$/.test(path)) {
         continue;
       }
-      found.push(resolved);
+
+      // Count for total_links (dedup within page only)
+      if (!pageDedup.has(resolved)) {
+        pageDedup.add(resolved);
+        allLinks.push(resolved);
+      }
+
+      // Count for new_links (not seen globally)
+      if (!seen.has(resolved) && !newLinks.includes(resolved)) {
+        newLinks.push(resolved);
+      }
     }
   }
 
-  return found;
+  return { allLinks, newLinks };
 }
 
 // ─── Concurrency helper ────────────────────────────────────────────────────────
@@ -160,6 +171,7 @@ export async function agentproxyCrawl(
   const pages: CrawlPageResult[] = [];
   let totalDiscovered = 0;
   let cachedPages = 0;
+  let extraRawFetches = 0; // double-fetch overhead when include_content=true + format!=raw
 
   // BFS: queue is an array of { url, depth } items
   interface QueueItem { url: string; depth: number }
@@ -200,9 +212,8 @@ export async function agentproxyCrawl(
 
           if (include_content && format === "markdown") {
             // We fetched as markdown for the user's content, but we need raw HTML for links.
-            // Re-fetch raw for link extraction only if this isn't a cache hit (cost-free).
-            // Actually, the cache deduplicates by format, so a raw fetch may already be cached
-            // from the link extraction. Fetch raw separately for links.
+            // Cache key is url|format|country, so url|markdown|country and url|raw|country
+            // are DIFFERENT keys — the raw fetch costs a separate credit.
             const rawResultStr = await agentproxyFetch(
               { url: item.url, format: "raw", country, timeout },
               adapter,
@@ -211,9 +222,8 @@ export async function agentproxyCrawl(
             const rawResult = JSON.parse(rawResultStr) as ProxySuccessResponse;
             linksHtml = (rawResult.data.content as string) || "";
             contentForUser = html; // markdown version
-            if (rawResult.meta.cache_hit !== true && !cacheHit) {
-              // Both fetches cost credits — but the raw one is likely cached from the markdown fetch.
-              // We'll count conservatively below.
+            if (rawResult.meta.cache_hit !== true) {
+              extraRawFetches++;
             }
           } else if (include_content) {
             // format=raw — same content used for both links and user
@@ -223,13 +233,14 @@ export async function agentproxyCrawl(
 
           if (cacheHit) cachedPages++;
 
-          const newLinks = extractInternalLinks(linksHtml, origin, hostname, visited);
+          const { allLinks, newLinks } = extractInternalLinks(linksHtml, origin, hostname, visited);
 
           const page: CrawlPageResult = {
             url: item.url,
             depth: item.depth,
             status_code: statusCode,
-            links_found: newLinks.length,
+            total_links: allLinks.length,
+            new_links: newLinks.length,
           };
 
           if (include_content && contentForUser !== undefined) {
@@ -243,7 +254,8 @@ export async function agentproxyCrawl(
             page: {
               url: item.url,
               depth: item.depth,
-              links_found: 0,
+              total_links: 0,
+              new_links: 0,
               error: msg,
             },
             newLinks: [],
@@ -297,7 +309,7 @@ export async function agentproxyCrawl(
       latency_ms,
       country,
       quota: {
-        credits_estimated: pages.length - cachedPages,
+        credits_estimated: pages.length - cachedPages + extraRawFetches,
         note: QUOTA_NOTE,
       },
     },

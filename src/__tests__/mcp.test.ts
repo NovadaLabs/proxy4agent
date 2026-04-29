@@ -32,7 +32,6 @@ describe("MCP server contracts", () => {
   it("classifyError returns a valid ProxyErrorCode for every branch", () => {
     const KNOWN_CODES = [
       "RATE_LIMITED",
-      "PAGE_NOT_FOUND",
       "BOT_DETECTION_SUSPECTED",
       "TIMEOUT",
       "NETWORK_ERROR",

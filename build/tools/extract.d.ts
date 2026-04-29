@@ -16,6 +16,6 @@ export declare function agentproxyExtract(params: ExtractParams, adapter: ProxyA
  * Uses common patterns: meta tags, Open Graph, Schema.org JSON-LD, headings,
  * and semantic HTML. Falls back to regex scanning for common field names.
  */
-export declare function extractField(html: string, field: string): string | string[] | null;
+export declare function extractField(html: string, field: string, baseUrl?: string): string | string[] | null;
 export declare function deepFind(obj: unknown, key: string, depth?: number): unknown;
 export declare function validateExtractParams(raw: Record<string, unknown>): ExtractParams;

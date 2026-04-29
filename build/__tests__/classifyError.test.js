@@ -18,14 +18,16 @@ describe("classifyError", () => {
         expect(result.error.recoverable).toBe(true);
         expect(result.error.retry_after_seconds).toBe(5);
     });
-    // ─── 404 → PAGE_NOT_FOUND ─────────────────────────────────
-    it("should return PAGE_NOT_FOUND for HTTP 404", () => {
+    // ─── 404 → BOT_DETECTION_SUSPECTED ────────────────────────
+    // Amazon and many sites return 404 as a bot-block response through proxies,
+    // so 404 falls through to the generic 4xx handler instead of a special case.
+    it("should return BOT_DETECTION_SUSPECTED for HTTP 404", () => {
         const result = classifyError(makeAxiosError(404));
-        expect(result.error.code).toBe("PAGE_NOT_FOUND");
+        expect(result.error.code).toBe("BOT_DETECTION_SUSPECTED");
     });
-    it("should set recoverable:false for PAGE_NOT_FOUND", () => {
+    it("should set recoverable:true for HTTP 404", () => {
         const result = classifyError(makeAxiosError(404));
-        expect(result.error.recoverable).toBe(false);
+        expect(result.error.recoverable).toBe(true);
     });
     // ─── 401, 403 → BOT_DETECTION_SUSPECTED ───────────────────
     it("should return BOT_DETECTION_SUSPECTED for HTTP 403", () => {
@@ -113,17 +115,15 @@ describe("classifyError", () => {
         expect(result.error.code).toBe("RATE_LIMITED");
         expect(result.error.code).not.toBe("BOT_DETECTION_SUSPECTED");
     });
-    it("should classify 404 before generic 4xx", () => {
-        // 404 is a 4xx but gets its own PAGE_NOT_FOUND code, not BOT_DETECTION_SUSPECTED
+    it("should classify 404 as BOT_DETECTION_SUSPECTED (no special case)", () => {
+        // 404 is treated as generic 4xx — many sites use it as a bot-block response
         const result = classifyError(makeAxiosError(404));
-        expect(result.error.code).toBe("PAGE_NOT_FOUND");
-        expect(result.error.code).not.toBe("BOT_DETECTION_SUSPECTED");
+        expect(result.error.code).toBe("BOT_DETECTION_SUSPECTED");
     });
     // ─── Recoverable flags ────────────────────────────────────
-    it("should set recoverable:false for NETWORK_ERROR, PAGE_NOT_FOUND, PROVIDER_NOT_CONFIGURED, INVALID_INPUT", () => {
+    it("should set recoverable:false for NETWORK_ERROR, PROVIDER_NOT_CONFIGURED, INVALID_INPUT", () => {
         const cases = [
             [new Error("ENOTFOUND bad.host"), "NETWORK_ERROR"],
-            [makeAxiosError(404), "PAGE_NOT_FOUND"],
             [new Error("not configured"), "PROVIDER_NOT_CONFIGURED"],
             [new Error("url is required"), "INVALID_INPUT"],
         ];
@@ -146,5 +146,34 @@ describe("classifyError", () => {
             expect(result.error.code).toBe(expectedCode);
             expect(result.error.recoverable).toBe(true);
         }
+    });
+    // ─── F1 fix tests: 404 → BOT_DETECTION_SUSPECTED (anti-bot sites use 404 as block) ──
+    it("should return BOT_DETECTION_SUSPECTED for HTTP 404 (anti-bot sites use 404 as block)", () => {
+        const result = classifyError(makeAxiosError(404));
+        expect(result.ok).toBe(false);
+        expect(result.error.code).toBe("BOT_DETECTION_SUSPECTED");
+        // Must NOT be PAGE_NOT_FOUND — that code was removed
+        expect(result.error.code).not.toBe("PAGE_NOT_FOUND");
+        expect(result.error.recoverable).toBe(true);
+        // agent_instruction should suggest render or retry
+        expect(result.error.agent_instruction).toMatch(/render|retry/i);
+    });
+    // ─── F1 fix tests: TLS_ERROR instruction should mention DNS ──────────────────
+    it("should include DNS note in TLS_ERROR agent_instruction", () => {
+        const result = classifyError(new Error("TLS handshake failed"));
+        expect(result.error.code).toBe("TLS_ERROR");
+        // The instruction should mention DNS failures as a possible cause
+        expect(result.error.agent_instruction).toMatch(/DNS|dns/i);
+        expect(result.error.agent_instruction).toMatch(/domain.*exist|verify/i);
+    });
+    it("should include DNS note for socket disconnect (TLS_ERROR variant)", () => {
+        const result = classifyError(new Error("socket disconnect during TLS"));
+        expect(result.error.code).toBe("TLS_ERROR");
+        expect(result.error.agent_instruction).toMatch(/DNS|dns/i);
+    });
+    it("should include DNS note for certificate errors (TLS_ERROR variant)", () => {
+        const result = classifyError(new Error("unable to get local issuer cert"));
+        expect(result.error.code).toBe("TLS_ERROR");
+        expect(result.error.agent_instruction).toMatch(/DNS|dns/i);
     });
 });
