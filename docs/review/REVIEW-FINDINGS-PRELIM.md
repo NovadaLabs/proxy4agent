@@ -22,7 +22,7 @@
 4. **No SSRF protection beyond http(s):// check** — internal IPs (127.0.0.1, 169.254.x.x) allowed
 
 #### Test Gaps (Agent 2 will enumerate)
-- **Zero tests for:** classifyError(), extractField(), agentproxyFetch() integration, MCP handlers, prompts, resources
+- **Zero tests for:** classifyError(), extractField(), novadaProxyFetch() integration, MCP handlers, prompts, resources
 - **validateExtractParams** and **validateMapParams** — no test files
 - Cache HIT behavior never tested (only key generation and TTL)
 - Batch semaphore correctness never tested under load
@@ -34,8 +34,8 @@
 - **New HttpsProxyAgent per request** — no agent reuse
 
 #### Agent UX (Agent 3 will evaluate)
-- Tool prefix `agentproxy_` is 12 chars before the verb — verbose
-- No `agentproxy_crawl` for recursive multi-page
+- Tool prefix `novada_proxy_` is 12 chars before the verb — verbose
+- No `novada_proxy_crawl` for recursive multi-page
 - No POST request support
 - No screenshot capability
 - Credit tracking in meta.quota.credits_estimated — good, but no running total

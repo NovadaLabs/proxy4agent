@@ -12,7 +12,7 @@
 | T2c | `extract --help` | Shows usage, options | 6 options listed. `--fields` shown as required with example. `--render_fallback` documented. | **PASS** |
 | T3 | `--version` | Prints version number | `1.7.6` (single line, no extra noise) | **PASS** |
 | T4 | `status --human` | Pretty-printed, human-readable output | ANSI color codes present (cyan header, green OK, yellow latency). Structured layout with labels (`provider`, `version`, `capabilities`, `connectivity`). Credits shown. Latency 5461ms. | **PASS** |
-| T5 | JSON parseable via `python3 json.load` | Valid JSON with `ok` and `tool` fields | `VALID JSON, ok=True tool=agentproxy_fetch`. Python successfully parsed stdout. | **PASS** |
+| T5 | JSON parseable via `python3 json.load` | Valid JSON with `ok` and `tool` fields | `VALID JSON, ok=True tool=novada_proxy_fetch`. Python successfully parsed stdout. | **PASS** |
 | T6 | Unknown command `nonexistent` | Error with guidance | Exit code 1. JSON error: `code: "INVALID_INPUT"`, `message: "Unknown command: nonexistent"`, `agent_instruction: "Run: novada-proxy --help for available commands."` | **PASS** |
 | T7 | All 9 tools in help | 9 commands: fetch, batch, search, extract, map, crawl, render, session, status | All 9 present. Each verified individually with `grep -c`. | **PASS** |
 

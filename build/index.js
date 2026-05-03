@@ -2,7 +2,7 @@
 import { Server } from "@modelcontextprotocol/sdk/server/index.js";
 import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolRequestSchema, ListToolsRequestSchema, ListPromptsRequestSchema, GetPromptRequestSchema, ListResourcesRequestSchema, ReadResourceRequestSchema, } from "@modelcontextprotocol/sdk/types.js";
-import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxySession, validateSessionParams, agentproxyRender, validateRenderParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyCrawl, validateCrawlParams, agentproxyStatus, } from "./tools/index.js";
+import { novadaProxyFetch, validateFetchParams, novadaProxyBatchFetch, validateBatchFetchParams, novadaProxySearch, validateSearchParams, novadaProxySession, validateSessionParams, novadaProxyRender, validateRenderParams, novadaProxyExtract, validateExtractParams, novadaProxyMap, validateMapParams, novadaProxyCrawl, validateCrawlParams, novadaProxyResearch, validateResearchParams, novadaProxyStatus, } from "./tools/index.js";
 import { resolveAdapter, listAdapters } from "./adapters/index.js";
 import { VERSION, NPM_PACKAGE } from "./config.js";
 import { classifyError } from "./errors.js";
@@ -28,8 +28,8 @@ let activeRenders = 0;
 // ─── Tool Definitions ────────────────────────────────────────────────────────
 const TOOLS = [
     {
-        name: "agentproxy_fetch",
-        description: "Fetch any URL through residential proxy (2M+ IPs, 195 countries, anti-bot bypass). Returns structured JSON with ok, data.content, data.status_code, meta.latency_ms, and meta.cache_hit.\n\nWHEN TO USE: Static/HTML pages, Amazon, LinkedIn, news sites, most commercial sites.\nUSE agentproxy_render INSTEAD IF: Page requires JavaScript to load (SPAs, React/Vue apps, dynamic feeds).\nUSE agentproxy_extract INSTEAD IF: You need structured fields (title, price, rating) not raw content.\nON FAILURE: If error.code is BOT_DETECTION_SUSPECTED → retry with agentproxy_render. If TLS_ERROR → retry with a different country parameter.\nCACHING: Repeated calls to the same URL+format+country are served from in-process cache (default TTL 300s). meta.cache_hit=true means no proxy credit was used. Sessions with session_id are never cached.",
+        name: "novada_proxy_fetch",
+        description: "Fetch any URL through residential proxy (2M+ IPs, 195 countries, anti-bot bypass). Returns structured JSON with ok, data.content, data.status_code, meta.latency_ms, and meta.cache_hit.\n\nWHEN TO USE: Static/HTML pages, Amazon, LinkedIn, news sites, most commercial sites.\nUSE novada_proxy_render INSTEAD IF: Page requires JavaScript to load (SPAs, React/Vue apps, dynamic feeds).\nUSE novada_proxy_extract INSTEAD IF: You need structured fields (title, price, rating) not raw content.\nON FAILURE: If error.code is BOT_DETECTION_SUSPECTED → retry with novada_proxy_render. If TLS_ERROR → retry with a different country parameter.\nCACHING: Repeated calls to the same URL+format+country are served from in-process cache (default TTL 300s). meta.cache_hit=true means no proxy credit was used. Sessions with session_id are never cached.",
         inputSchema: {
             type: "object",
             properties: {
@@ -44,8 +44,8 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_batch_fetch",
-        description: "Fetch multiple URLs concurrently through residential proxy. Returns structured JSON with per-URL results including ok/error status. Up to 20 URLs, up to 5 concurrent.\n\nWHEN TO USE: Scraping lists of URLs from search results, product catalogs, competitor pages.\nUSE agentproxy_fetch INSTEAD FOR: Single URLs — lower overhead.\nON FAILURE: Individual URL failures are captured in results[].error — the batch itself succeeds even if some URLs fail.",
+        name: "novada_proxy_batch_fetch",
+        description: "Fetch multiple URLs concurrently through residential proxy. Returns structured JSON with per-URL results including ok/error status. Up to 20 URLs, up to 5 concurrent.\n\nWHEN TO USE: Scraping lists of URLs from search results, product catalogs, competitor pages.\nUSE novada_proxy_fetch INSTEAD FOR: Single URLs — lower overhead.\nON FAILURE: Individual URL failures are captured in results[].error — the batch itself succeeds even if some URLs fail.",
         inputSchema: {
             type: "object",
             properties: {
@@ -60,8 +60,8 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_render",
-        description: "[BETA] Render a JavaScript-heavy page using real Chromium (Novada Browser API). Returns structured JSON with ok, data.content. Requires NOVADA_BROWSER_WS env var.\n\nWHEN TO USE: SPAs, React/Vue apps, infinite scroll, pages that require JS to load content.\nUSE agentproxy_fetch INSTEAD FOR: Static HTML pages — it is 3-5x faster.\nON FAILURE: If error.code is TIMEOUT → increase timeout. If PROVIDER_NOT_CONFIGURED → set NOVADA_BROWSER_WS.",
+        name: "novada_proxy_render",
+        description: "[BETA] Render a JavaScript-heavy page using real Chromium (Novada Browser API). Returns structured JSON with ok, data.content. Requires NOVADA_BROWSER_WS env var.\n\nWHEN TO USE: SPAs, React/Vue apps, infinite scroll, pages that require JS to load content.\nUSE novada_proxy_fetch INSTEAD FOR: Static HTML pages — it is 3-5x faster.\nON FAILURE: If error.code is TIMEOUT → increase timeout. If PROVIDER_NOT_CONFIGURED → set NOVADA_BROWSER_WS.",
         inputSchema: {
             type: "object",
             properties: {
@@ -74,8 +74,8 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_search",
-        description: "Structured web search via Google (Novada). Returns JSON with ok, data.results as array of {title, url, snippet}. No HTML parsing needed — results are pre-structured.\n\nWHEN TO USE: Finding pages by topic, factual queries, discovering URLs to then fetch.\nUSE agentproxy_fetch INSTEAD FOR: Reading a specific URL you already have.\nON FAILURE: If error.code is PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY.",
+        name: "novada_proxy_search",
+        description: "Structured web search via Google (Novada). Returns JSON with ok, data.results as array of {title, url, snippet}. No HTML parsing needed — results are pre-structured.\n\nWHEN TO USE: Finding pages by topic, factual queries, discovering URLs to then fetch.\nUSE novada_proxy_fetch INSTEAD FOR: Reading a specific URL you already have.\nON FAILURE: If error.code is PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY.",
         inputSchema: {
             type: "object",
             properties: {
@@ -89,25 +89,26 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_extract",
-        description: "Extract structured fields (title, price, rating, author, etc.) from any URL via residential proxy. Returns JSON with ok, data.fields as key-value map. Uses Open Graph, JSON-LD, and HTML heuristics.\n\nWHEN TO USE: Product pages, articles, listings where you need specific fields not raw content.\nUSE agentproxy_fetch INSTEAD IF: You need full page content, not specific fields.\nAUTO-ESCALATION: Set render_fallback:true to automatically retry via real browser (agentproxy_render) if the proxy fetch fails with TLS_ERROR or bot detection. Costs 5 credits if escalated.\nON FAILURE without render_fallback: If TLS_ERROR or BOT_DETECTION_SUSPECTED → retry with render_fallback:true.",
+        name: "novada_proxy_extract",
+        description: "Extract structured fields (title, price, rating, author, etc.) from any URL via residential proxy. Returns JSON with ok, data.fields as key-value map. Uses Open Graph, JSON-LD, and HTML heuristics.\n\nWHEN TO USE: Product pages, articles, listings where you need specific fields not raw content.\nUSE novada_proxy_fetch INSTEAD IF: You need full page content, not specific fields.\nAUTO-ESCALATION: Set render_fallback:true to automatically retry via real browser (novada_proxy_render) if the proxy fetch fails with TLS_ERROR or bot detection. Costs 5 credits if escalated.\nON FAILURE without render_fallback: If TLS_ERROR or BOT_DETECTION_SUSPECTED → retry with render_fallback:true.\nSCHEMA MODE (LLM extraction): Pass schema:{field_name: \"description\"} instead of fields for arbitrary extraction. Returns cleaned content + extraction prompt — your agent does the extraction (zero additional cost, works with any LLM). Example: schema:{\"price\":\"Current price in USD\",\"warranty\":\"Warranty terms\"}",
         inputSchema: {
             type: "object",
             properties: {
                 url: { type: "string", description: "The URL to extract data from" },
-                fields: { type: "array", items: { type: "string" }, description: "Field names to extract: title, price, currency, description, image, rating, review_count, author, date, url, links, headings, h2, or any JSON-LD/meta field name" },
+                fields: { type: "array", items: { type: "string" }, description: "Field names to extract: title, price, currency, description, image, rating, review_count, author, date, url, links, headings, h2, or any JSON-LD/meta field name. Mutually exclusive with schema." },
+                schema: { type: "object", additionalProperties: { type: "string" }, description: "Schema for LLM-based extraction: {field_name: \"description\"}. When provided, returns cleaned markdown content + extraction prompt instead of heuristic extraction. Mutually exclusive with fields. 1-20 fields, keys must be alphanumeric/underscore." },
                 country: { type: "string", description: "2-letter country code for geo-targeting (e.g. US, DE, JP)" },
                 city: { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
                 session_id: { type: "string", description: "Reuse same ID to keep the same IP across calls" },
                 timeout: { type: "number", default: 60, description: "Timeout in seconds (1-120)" },
-                render_fallback: { type: "boolean", default: false, description: "Auto-retry via real browser (agentproxy_render) if proxy fetch fails with TLS or bot-detection error. Requires NOVADA_BROWSER_WS. Costs 5 credits if triggered." },
+                render_fallback: { type: "boolean", default: false, description: "Auto-retry via real browser (novada_proxy_render) if proxy fetch fails with TLS or bot-detection error. Requires NOVADA_BROWSER_WS. Costs 5 credits if triggered." },
             },
-            required: ["url", "fields"],
+            required: ["url"],
         },
     },
     {
-        name: "agentproxy_session",
-        description: "Specialized wrapper around agentproxy_fetch with session verification. For basic sticky routing without verification, use agentproxy_fetch with a session_id parameter instead.\n\nFetch a URL with a sticky session — same residential IP reused across calls with the same session_id. Returns structured JSON. Use verify_sticky:true to confirm the session held.\n\nWHEN TO USE: Multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.\nNOTE: Sticky sessions are best-effort — infrastructure may not guarantee 100% IP consistency. Use verify_sticky:true to confirm.\nNOTE: verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds. Only use it when you need to confirm IP consistency before a multi-step workflow.\nON FAILURE: If SESSION_STICKINESS_FAILED → regenerate session_id or accept best-effort behavior.",
+        name: "novada_proxy_session",
+        description: "Specialized wrapper around novada_proxy_fetch with session verification. For basic sticky routing without verification, use novada_proxy_fetch with a session_id parameter instead.\n\nFetch a URL with a sticky session — same residential IP reused across calls with the same session_id. Returns structured JSON. Use verify_sticky:true to confirm the session held.\n\nWHEN TO USE: Multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.\nNOTE: Sticky sessions are best-effort — infrastructure may not guarantee 100% IP consistency. Use verify_sticky:true to confirm.\nNOTE: verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds. Only use it when you need to confirm IP consistency before a multi-step workflow.\nON FAILURE: If SESSION_STICKINESS_FAILED → regenerate session_id or accept best-effort behavior.",
         inputSchema: {
             type: "object",
             properties: {
@@ -123,8 +124,8 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_map",
-        description: "Crawl a URL and return all internal links found on the page. Returns structured JSON with data.internal_urls array. Useful for discovering pages before batch-fetching them.\n\nWHEN TO USE: Before a batch scraping job — call agentproxy_map first to discover URLs, then agentproxy_batch_fetch to scrape them.\nUSE agentproxy_fetch INSTEAD IF: You only need the content of a single specific URL.\nNOTE: This is a shallow map (single page). For deep crawls, call agentproxy_map iteratively on discovered URLs.",
+        name: "novada_proxy_map",
+        description: "Crawl a URL and return all internal links found on the page. Returns structured JSON with data.internal_urls array. Useful for discovering pages before batch-fetching them.\n\nWHEN TO USE: Before a batch scraping job — call novada_proxy_map first to discover URLs, then novada_proxy_batch_fetch to scrape them.\nUSE novada_proxy_fetch INSTEAD IF: You only need the content of a single specific URL.\nNOTE: This is a shallow map (single page). For deep crawls, call novada_proxy_map iteratively on discovered URLs.",
         inputSchema: {
             type: "object",
             properties: {
@@ -138,8 +139,8 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_crawl",
-        description: "Recursively crawl a website — BFS traversal from a starting URL to configurable depth. Returns all discovered URLs with metadata. Optionally includes page content inline.\n\nWHEN TO USE: Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page (agentproxy_map is single-page only).\nUSE agentproxy_map INSTEAD IF: You only need links from ONE page.\nUSE agentproxy_batch_fetch INSTEAD IF: You already have the URLs and just need content.\nWORKFLOW: crawl(depth=2) → get URL tree → batch_fetch the pages you need.\nNOTE: include_content=false (default) returns URLs only — fast and cheap. Set include_content=true to get page content inline (slower, costs 1 credit per page).\nCACHING: Pages already in cache from prior fetch/map/crawl calls cost 0 credits.",
+        name: "novada_proxy_crawl",
+        description: "Recursively crawl a website — BFS traversal from a starting URL to configurable depth. Returns all discovered URLs with metadata. Optionally includes page content inline.\n\nWHEN TO USE: Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page (novada_proxy_map is single-page only).\nUSE novada_proxy_map INSTEAD IF: You only need links from ONE page.\nUSE novada_proxy_batch_fetch INSTEAD IF: You already have the URLs and just need content.\nWORKFLOW: crawl(depth=2) → get URL tree → batch_fetch the pages you need.\nNOTE: include_content=false (default) returns URLs only — fast and cheap. Set include_content=true to get page content inline (slower, costs 1 credit per page).\nCACHING: Pages already in cache from prior fetch/map/crawl calls cost 0 credits.",
         inputSchema: {
             type: "object",
             properties: {
@@ -155,7 +156,21 @@ const TOOLS = [
         },
     },
     {
-        name: "agentproxy_status",
+        name: "novada_proxy_research",
+        description: "One-shot deep research — searches the web, fetches top results, and returns a structured findings summary (concatenated source previews — your agent should analyze findings[] for deeper synthesis) with sources. No LLM needed — the agent receives pre-researched findings it can analyze further.\n\nWHEN TO USE: Research questions, topic investigation, competitive analysis, fact-finding.\nUSE novada_proxy_search INSTEAD IF: You just need search results (titles + URLs), not full content.\nUSE novada_proxy_fetch INSTEAD IF: You already know which URL to read.\nCHAIN WITH: The findings_summary is a starting point — use novada_proxy_fetch on specific urls[] for deeper reading.\nON FAILURE: If PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY (required for search step).",
+        inputSchema: {
+            type: "object",
+            properties: {
+                query: { type: "string", description: "Research question or topic to investigate" },
+                depth: { type: "string", enum: ["quick", "standard", "deep"], default: "standard", description: "Research depth: quick (3 sources), standard (5 sources), deep (10 sources)" },
+                country: { type: "string", description: "2-letter country code for geo-targeted results (e.g. US, DE, JP)" },
+                timeout: { type: "number", default: 60, description: "Per-source timeout in seconds (1-120)" },
+            },
+            required: ["query"],
+        },
+    },
+    {
+        name: "novada_proxy_status",
         description: "Check proxy connectivity and provider health. Returns structured JSON with ok, data.connectivity.status (HEALTHY/DEGRADED/UNAVAILABLE) and data.connectivity.proxy_ip (verified via live proxy call).\n\nWHEN TO USE: Before starting a large scraping workflow, or to diagnose proxy failures.\nNOTE: Live connectivity check — makes one proxy request to httpbin.org/ip on every call.",
         inputSchema: {
             type: "object",
@@ -182,19 +197,19 @@ class NovadaProxyServer {
             try {
                 let result;
                 switch (name) {
-                    case "agentproxy_fetch": {
+                    case "novada_proxy_fetch": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyFetch(validateFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await novadaProxyFetch(validateFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
-                    case "agentproxy_batch_fetch": {
+                    case "novada_proxy_batch_fetch": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyBatchFetch(validateBatchFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await novadaProxyBatchFetch(validateBatchFetchParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
-                    case "agentproxy_render": {
+                    case "novada_proxy_render": {
                         if (!NOVADA_BROWSER_WS)
                             return this.missingBrowserWsError();
                         if (activeRenders >= MAX_CONCURRENT_RENDERS) {
@@ -214,46 +229,54 @@ class NovadaProxyServer {
                         }
                         activeRenders++;
                         try {
-                            result = await agentproxyRender(validateRenderParams(raw), NOVADA_BROWSER_WS);
+                            result = await novadaProxyRender(validateRenderParams(raw), NOVADA_BROWSER_WS);
                         }
                         finally {
                             activeRenders--;
                         }
                         break;
                     }
-                    case "agentproxy_search": {
+                    case "novada_proxy_search": {
                         if (!NOVADA_API_KEY)
                             return this.missingApiKeyError();
-                        result = await agentproxySearch(validateSearchParams(raw), NOVADA_API_KEY);
+                        result = await novadaProxySearch(validateSearchParams(raw), NOVADA_API_KEY);
                         break;
                     }
-                    case "agentproxy_extract": {
+                    case "novada_proxy_extract": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyExtract(validateExtractParams(raw), proxyContext.adapter, proxyContext.credentials, NOVADA_BROWSER_WS // passed for render_fallback escalation
+                        result = await novadaProxyExtract(validateExtractParams(raw), proxyContext.adapter, proxyContext.credentials, NOVADA_BROWSER_WS // passed for render_fallback escalation
                         );
                         break;
                     }
-                    case "agentproxy_session": {
+                    case "novada_proxy_session": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxySession(validateSessionParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await novadaProxySession(validateSessionParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
-                    case "agentproxy_map": {
+                    case "novada_proxy_map": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyMap(validateMapParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await novadaProxyMap(validateMapParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
-                    case "agentproxy_crawl": {
+                    case "novada_proxy_crawl": {
                         if (!proxyContext)
                             return this.missingProxyError();
-                        result = await agentproxyCrawl(validateCrawlParams(raw), proxyContext.adapter, proxyContext.credentials);
+                        result = await novadaProxyCrawl(validateCrawlParams(raw), proxyContext.adapter, proxyContext.credentials);
                         break;
                     }
-                    case "agentproxy_status": {
-                        result = await agentproxyStatus(proxyContext?.adapter, proxyContext?.credentials);
+                    case "novada_proxy_research": {
+                        if (!NOVADA_API_KEY)
+                            return this.missingApiKeyError();
+                        if (!proxyContext)
+                            return this.missingProxyError();
+                        result = await novadaProxyResearch(validateResearchParams(raw), proxyContext.adapter, proxyContext.credentials, NOVADA_API_KEY);
+                        break;
+                    }
+                    case "novada_proxy_status": {
+                        result = await novadaProxyStatus(proxyContext?.adapter, proxyContext?.credentials);
                         break;
                     }
                     default:
@@ -331,7 +354,7 @@ class NovadaProxyServer {
             ok: false,
             error: {
                 code: "PROVIDER_NOT_CONFIGURED",
-                message: "NOVADA_API_KEY is not set (required for agentproxy_search).",
+                message: "NOVADA_API_KEY is not set (required for novada_proxy_search).",
                 recoverable: false,
                 agent_instruction: `Get your API key at novada.com → Dashboard → API Keys. Then restart with: claude mcp add ${NPM_PACKAGE} -e NOVADA_API_KEY=your_key -- npx -y ${NPM_PACKAGE}`,
             },
@@ -355,7 +378,7 @@ class NovadaProxyServer {
             },
             {
                 name: "research_topic",
-                description: "Search the web for a topic and read the top results. Uses agentproxy_search to find URLs, then agentproxy_batch_fetch to read them in parallel.",
+                description: "Search the web for a topic and read the top results. Uses novada_proxy_search to find URLs, then novada_proxy_batch_fetch to read them in parallel.",
                 arguments: [
                     { name: "query", description: "Search query (e.g. 'residential proxy for AI agents 2024')", required: true },
                     { name: "num_results", description: "Number of results to fetch (1-10, default 5)", required: false },
@@ -402,7 +425,7 @@ class NovadaProxyServer {
                             role: "user",
                             content: {
                                 type: "text",
-                                text: `Use the agentproxy_fetch tool to fetch this URL through a residential proxy:\n\nurl: ${url}\ncountry: ${country}\nformat: ${format}\n\nReturn the page content. If you get a BOT_DETECTION_SUSPECTED error, retry with agentproxy_render instead.`,
+                                text: `Use the novada_proxy_fetch tool to fetch this URL through a residential proxy:\n\nurl: ${url}\ncountry: ${country}\nformat: ${format}\n\nReturn the page content. If you get a BOT_DETECTION_SUSPECTED error, retry with novada_proxy_render instead.`,
                             },
                         }],
                 };
@@ -417,7 +440,7 @@ class NovadaProxyServer {
                             role: "user",
                             content: {
                                 type: "text",
-                                text: `Research this topic using the proxy tools:\n\n1. Use agentproxy_search with query="${query}", num=${numResults}, country="${country}" to find relevant URLs\n2. Use agentproxy_batch_fetch with the URLs from step 1 (concurrency=3, format="markdown")\n3. Summarize the key findings from all pages\n\nReturn a structured summary with source URLs.`,
+                                text: `Research this topic using the proxy tools:\n\n1. Use novada_proxy_search with query="${query}", num=${numResults}, country="${country}" to find relevant URLs\n2. Use novada_proxy_batch_fetch with the URLs from step 1 (concurrency=3, format="markdown")\n3. Summarize the key findings from all pages\n\nReturn a structured summary with source URLs.`,
                             },
                         }],
                 };
@@ -431,7 +454,7 @@ class NovadaProxyServer {
                             role: "user",
                             content: {
                                 type: "text",
-                                text: `Extract product data from this URL using agentproxy_extract:\n\nurl: ${url}\nfields: [${fields.split(",").map(f => `"${f.trim()}"`).join(", ")}]\nrender_fallback: true\n\nReturn the extracted fields as a JSON object. If a field is null, note that it was not found on the page.`,
+                                text: `Extract product data from this URL using novada_proxy_extract:\n\nurl: ${url}\nfields: [${fields.split(",").map(f => `"${f.trim()}"`).join(", ")}]\nrender_fallback: true\n\nReturn the extracted fields as a JSON object. If a field is null, note that it was not found on the page.`,
                             },
                         }],
                 };
@@ -446,7 +469,7 @@ class NovadaProxyServer {
                             role: "user",
                             content: {
                                 type: "text",
-                                text: `Crawl this site using the map→batch pipeline:\n\n1. Use agentproxy_map with url="${url}", limit=${limit}, country="${country}" to discover all internal URLs\n2. Use agentproxy_batch_fetch with the internal_urls array from step 1 (concurrency=5, format="markdown")\n3. Return a summary of all pages found with their titles and key content\n\nNote: Check meta.cache_hit on each result — cached pages cost zero proxy credits.`,
+                                text: `Crawl this site using the map→batch pipeline:\n\n1. Use novada_proxy_map with url="${url}", limit=${limit}, country="${country}" to discover all internal URLs\n2. Use novada_proxy_batch_fetch with the internal_urls array from step 1 (concurrency=5, format="markdown")\n3. Return a summary of all pages found with their titles and key content\n\nNote: Check meta.cache_hit on each result — cached pages cost zero proxy credits.`,
                             },
                         }],
                 };
@@ -461,12 +484,12 @@ class NovadaProxyServer {
                             content: {
                                 type: "text",
                                 text: `Diagnose why proxy calls are failing using these steps:${errorContext}
-1. Call agentproxy_status to check connectivity and provider health
-2. If status is HEALTHY, try agentproxy_fetch with url="https://httpbin.org/ip" to verify a simple fetch works
+1. Call novada_proxy_status to check connectivity and provider health
+2. If status is HEALTHY, try novada_proxy_fetch with url="https://httpbin.org/ip" to verify a simple fetch works
 3. If fetch fails, check the error code:
    - TIMEOUT → increase timeout parameter or try a different country
-   - TLS_ERROR → try agentproxy_render instead, or a different country
-   - BOT_DETECTION_SUSPECTED → use agentproxy_render for this site
+   - TLS_ERROR → try novada_proxy_render instead, or a different country
+   - BOT_DETECTION_SUSPECTED → use novada_proxy_render for this site
    - RATE_LIMITED → wait 5 seconds and retry
    - PROVIDER_NOT_CONFIGURED → credentials are missing, check env vars
 4. Report: what worked, what failed, and recommended next action.`,
@@ -501,7 +524,7 @@ class NovadaProxyServer {
             {
                 uri: "proxy://supported-fields",
                 name: "Supported Extract Fields",
-                description: "All field names that agentproxy_extract can extract, with aliases and extraction strategies.",
+                description: "All field names that novada_proxy_extract can extract, with aliases and extraction strategies.",
                 mimeType: "application/json",
             },
             {
@@ -545,7 +568,7 @@ class NovadaProxyServer {
             if (uri === "proxy://error-codes") {
                 const errorCodes = {
                     error_codes: [
-                        { code: "BOT_DETECTION_SUSPECTED", recoverable: true, http_status: "4xx (except 429)", action: "Retry with agentproxy_render or different country parameter" },
+                        { code: "BOT_DETECTION_SUSPECTED", recoverable: true, http_status: "4xx (except 429)", action: "Retry with novada_proxy_render or different country parameter" },
                         { code: "TLS_ERROR", recoverable: true, cause: "TLS/SSL handshake failed through proxy", action: "Retry with different country parameter" },
                         { code: "TIMEOUT", recoverable: true, cause: "Request exceeded timeout limit", action: "Increase timeout parameter (max 120s) or retry" },
                         { code: "RATE_LIMITED", recoverable: true, http_status: "429", action: "Wait 5 seconds and retry. Reduce request frequency." },
@@ -553,7 +576,7 @@ class NovadaProxyServer {
                         { code: "SESSION_STICKINESS_FAILED", recoverable: true, cause: "Same IP not maintained across session calls", action: "Retry with verify_sticky:true to confirm before relying on it" },
                         { code: "INVALID_INPUT", recoverable: false, cause: "Bad parameter value (validation failed)", action: "Fix the parameter and retry. Check inputSchema for valid values." },
                         { code: "PROVIDER_NOT_CONFIGURED", recoverable: false, cause: "Required environment variable not set", action: "Set credentials and restart the MCP server" },
-                        { code: "UNKNOWN_ERROR", recoverable: true, cause: "Unexpected error", action: "Check agentproxy_status for network health, then retry" },
+                        { code: "UNKNOWN_ERROR", recoverable: true, cause: "Unexpected error", action: "Check novada_proxy_status for network health, then retry" },
                     ],
                     response_format: {
                         ok: false,
@@ -584,35 +607,35 @@ class NovadaProxyServer {
                                 "",
                                 "--- 1. Site Crawl Pipeline (map → batch) ---",
                                 "Goal: read all pages on a site",
-                                "  agentproxy_map(url, limit=50)",
+                                "  novada_proxy_map(url, limit=50)",
                                 "    → returns internal_urls[] (1 credit, ~4s)",
-                                "  agentproxy_batch_fetch(urls=internal_urls, concurrency=5)",
+                                "  novada_proxy_batch_fetch(urls=internal_urls, concurrency=5)",
                                 "    → fetches all pages in parallel (N credits, ~4s wall time)",
                                 "",
                                 "--- 2. Research Pipeline (search → batch) ---",
                                 "Goal: find and read top pages on a topic",
-                                "  agentproxy_search(query, num=5)",
+                                "  novada_proxy_search(query, num=5)",
                                 "    → structured JSON: titles + URLs + snippets",
-                                "  agentproxy_batch_fetch(urls=result_urls, format='markdown')",
+                                "  novada_proxy_batch_fetch(urls=result_urls, format='markdown')",
                                 "    → full content of all pages in parallel",
                                 "",
                                 "--- 3. Sticky Session (login + multi-page) ---",
                                 "Goal: scrape authenticated pages with same IP",
-                                "  agentproxy_session(session_id='job001', url='/login')",
-                                "  agentproxy_session(session_id='job001', url='/dashboard')",
-                                "  agentproxy_session(session_id='job001', url='/data/page/1')",
+                                "  novada_proxy_session(session_id='job001', url='/login')",
+                                "  novada_proxy_session(session_id='job001', url='/dashboard')",
+                                "  novada_proxy_session(session_id='job001', url='/data/page/1')",
                                 "  # Same IP guaranteed across all calls",
                                 "",
                                 "--- 4. Price Monitoring (geo comparison) ---",
                                 "Goal: same product, different markets",
-                                "  agentproxy_fetch(url=product_url, country='US')",
-                                "  agentproxy_fetch(url=product_url, country='DE')",
-                                "  agentproxy_fetch(url=product_url, country='JP')",
+                                "  novada_proxy_fetch(url=product_url, country='US')",
+                                "  novada_proxy_fetch(url=product_url, country='DE')",
+                                "  novada_proxy_fetch(url=product_url, country='JP')",
                                 "  # 2nd+ calls per URL are cache hits (0ms, 0 credits)",
                                 "",
                                 "--- 5. Structured Extraction (with JS fallback) ---",
                                 "Goal: get product fields without HTML parsing",
-                                "  agentproxy_extract(",
+                                "  novada_proxy_extract(",
                                 "    url=product_url,",
                                 "    fields=['title', 'price', 'description', 'rating'],",
                                 "    render_fallback=true  # auto-escalates to Chromium if blocked",
@@ -644,7 +667,7 @@ class NovadaProxyServer {
                         { field: "headings", aliases: ["h1"], strategy: "All <h1> tag contents" },
                         { field: "h2", aliases: [], strategy: "All <h2> tag contents" },
                     ],
-                    note: "For any field name not listed above, agentproxy_extract tries JSON-LD then meta tags as a generic fallback. For complex extraction needs, use agentproxy_fetch(format='raw') and parse the HTML yourself.",
+                    note: "For any field name not listed above, novada_proxy_extract tries JSON-LD then meta tags as a generic fallback. For complex extraction needs, use novada_proxy_fetch(format='raw') and parse the HTML yourself.",
                 };
                 return {
                     contents: [{
@@ -663,24 +686,24 @@ class NovadaProxyServer {
                                 "=== Novada Proxy — Credit Cost Guide ===",
                                 "",
                                 "Credits per tool call:",
-                                "  agentproxy_fetch     → 1 credit (0 if cache_hit=true)",
-                                "  agentproxy_batch_fetch → 1 per URL (minus cache hits)",
-                                "  agentproxy_extract   → 1 credit (5 if render_fallback triggered)",
-                                "  agentproxy_map       → 1 credit",
-                                "  agentproxy_crawl    → 1 credit per page (0 if cache_hit=true)",
+                                "  novada_proxy_fetch     → 1 credit (0 if cache_hit=true)",
+                                "  novada_proxy_batch_fetch → 1 per URL (minus cache hits)",
+                                "  novada_proxy_extract   → 1 credit (5 if render_fallback triggered)",
+                                "  novada_proxy_map       → 1 credit",
+                                "  novada_proxy_crawl    → 1 credit per page (0 if cache_hit=true)",
                                 "  NOTE: with include_content=true and format=markdown, crawl makes 2 fetches per page",
                                 "  (one for content, one for link extraction). Budget up to 2 credits per page in that mode.",
-                                "  agentproxy_session   → 1 credit (3 if verify_sticky=true)",
-                                "  agentproxy_search    → 1 credit",
-                                "  agentproxy_render    → 5 credits (Browser API metered separately)",
-                                "  agentproxy_status    → 1 credit (makes a live proxy call)",
+                                "  novada_proxy_session   → 1 credit (3 if verify_sticky=true)",
+                                "  novada_proxy_search    → 1 credit",
+                                "  novada_proxy_render    → 5 credits (Browser API metered separately)",
+                                "  novada_proxy_status    → 1 credit (makes a live proxy call)",
                                 "",
                                 "Cost optimization tips:",
-                                "  1. Use agentproxy_fetch before agentproxy_render — fetch is 5x cheaper",
+                                "  1. Use novada_proxy_fetch before novada_proxy_render — fetch is 5x cheaper",
                                 "  2. Repeated calls to the same URL are cached (meta.cache_hit=true = 0 credits)",
                                 "  3. Cache TTL is 300s by default. Set PROXY4AGENT_CACHE_TTL_SECONDS to adjust.",
                                 "  4. session_id requests bypass cache (sticky routing requires live calls)",
-                                "  5. Use agentproxy_extract with render_fallback:true only when needed (auto-escalation costs 5 credits)",
+                                "  5. Use novada_proxy_extract with render_fallback:true only when needed (auto-escalation costs 5 credits)",
                                 "  6. batch_fetch with concurrency=3 is the sweet spot for speed vs. cost",
                                 "  7. Check meta.quota.credits_estimated on every response for actual cost",
                             ].join("\n"),
@@ -695,7 +718,7 @@ class NovadaProxyServer {
             ok: false,
             error: {
                 code: "PROVIDER_NOT_CONFIGURED",
-                message: "NOVADA_BROWSER_WS is not set (required for agentproxy_render).",
+                message: "NOVADA_BROWSER_WS is not set (required for novada_proxy_render).",
                 recoverable: false,
                 agent_instruction: `Get your Browser API WebSocket URL at novada.com → Dashboard → Browser API → Playground → copy the Puppeteer URL (looks like wss://USER-zone-browser:PASS@upg-scbr.novada.com). Then restart with: claude mcp add ${NPM_PACKAGE} -e NOVADA_BROWSER_WS=your_wss_url -- npx -y ${NPM_PACKAGE}`,
             },
@@ -740,8 +763,8 @@ Environment variables:
   NOVADA_PROXY_USER     Novada proxy username
   NOVADA_PROXY_PASS     Novada proxy password
   NOVADA_PROXY_HOST     Account-specific proxy host (optional; for reliable sticky sessions)
-  NOVADA_API_KEY        Novada Scraper API key (for agentproxy_search)
-  NOVADA_BROWSER_WS     Novada Browser API WebSocket URL (for agentproxy_render)
+  NOVADA_API_KEY        Novada Scraper API key (for novada_proxy_search)
+  NOVADA_BROWSER_WS     Novada Browser API WebSocket URL (for novada_proxy_render)
 
 Connect to Claude Code (Novada):
   claude mcp add ${NPM_PACKAGE} \\
@@ -749,13 +772,17 @@ Connect to Claude Code (Novada):
     -e NOVADA_PROXY_PASS=your_password \\
     -- npx -y ${NPM_PACKAGE}
 
-Tools:
-  agentproxy_fetch    Fetch any URL through residential proxy (anti-bot bypass)
-  agentproxy_extract  Extract structured data (title, price, etc.) from any URL
-  agentproxy_session  Sticky session — same IP across requests
-  agentproxy_search   Structured web search via Google
-  agentproxy_render   Render JS-heavy pages with real Chromium (Browser API)
-  agentproxy_status   Proxy network health + active provider
+Tools (10):
+  novada_proxy_fetch       Fetch any URL through residential proxy
+  novada_proxy_batch_fetch Fetch multiple URLs concurrently
+  novada_proxy_extract     Extract structured fields (heuristic or schema mode)
+  novada_proxy_map         Scan a page for all links
+  novada_proxy_crawl       Recursively crawl a website (BFS)
+  novada_proxy_search      Google search → structured JSON
+  novada_proxy_research    One-shot research (search + fetch + findings)
+  novada_proxy_render      Render JS-heavy pages with Chromium [BETA]
+  novada_proxy_session     Sticky session — same IP across calls
+  novada_proxy_status      Check proxy health
 `);
     process.exit(0);
 }

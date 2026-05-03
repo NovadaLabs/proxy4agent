@@ -67,7 +67,7 @@ proxy4agents v1.7.2 is a well-engineered MCP server with **genuinely unique agen
 | M3 | `data:` URIs pass through htmlToMarkdown links | Security | 15 min |
 | M4 | No magic-byte check before decompression probe (3 wasted exceptions) | Architecture | 20 min |
 | M5 | FIFO cache eviction — should be LRU | Architecture | 10 min |
-| M6 | `agentproxy_session` vs `agentproxy_fetch` with session_id unclear | Agent UX | Docs only |
+| M6 | `novada_proxy_session` vs `novada_proxy_fetch` with session_id unclear | Agent UX | Docs only |
 | M7 | `render` format enum differs from `fetch` (adds "text", removes "raw") | Agent UX | Docs only |
 | M8 | `search` engine param — single-value enum is noise | Agent UX | 5 min |
 
@@ -134,9 +134,9 @@ Test infrastructure needed:
 4. Publish explicit free tier numbers in README line 1
 
 ### Phase 2: Competitive Parity (Week 3-6)
-1. **`agentproxy_crawl`** — recursive multi-page with depth param (P0 gap)
-2. **`agentproxy_post`** — POST/form submission support
-3. **`agentproxy_screenshot`** — base64 PNG via existing puppeteer
+1. **`novada_proxy_crawl`** — recursive multi-page with depth param (P0 gap)
+2. **`novada_proxy_post`** — POST/form submission support
+3. **`novada_proxy_screenshot`** — base64 PNG via existing puppeteer
 4. **Split 4xx classification** — separate 404 from bot detection
 5. Fix batch credits to subtract cache hits
 6. Add 50+ integration tests

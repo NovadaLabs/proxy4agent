@@ -112,7 +112,7 @@ Geo-targeting works. The `meta.country` field confirms US was requested.
     "code": "TLS_ERROR",
     "message": "TLS/SSL connection failed",
     "recoverable": true,
-    "agent_instruction": "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render.",
+    "agent_instruction": "The target rejected the proxy connection. Retry with a different country parameter or use novada_proxy_render.",
     "retry_after_seconds": 2
   }
 }

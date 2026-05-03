@@ -20,5 +20,5 @@ export interface BatchFetchResult {
     };
     latency_ms: number;
 }
-export declare function agentproxyBatchFetch(params: BatchFetchParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
+export declare function novadaProxyBatchFetch(params: BatchFetchParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
 export declare function validateBatchFetchParams(raw: Record<string, unknown>): BatchFetchParams;

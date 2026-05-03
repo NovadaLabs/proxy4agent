@@ -1,7 +1,7 @@
 import puppeteer from "puppeteer-core";
 import { htmlToMarkdown, htmlToText, unicodeSafeTruncate } from "../utils.js";
 import { QUOTA_NOTE } from "../validation.js";
-export async function agentproxyRender(params, browserWsEndpoint) {
+export async function novadaProxyRender(params, browserWsEndpoint) {
     const { url, format = "markdown", wait_for, timeout = 60 } = params;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
         throw new Error("URL must start with http:// or https://");
@@ -38,7 +38,7 @@ export async function agentproxyRender(params, browserWsEndpoint) {
             const statusCode = response?.status() ?? 200;
             const result = {
                 ok: true,
-                tool: "agentproxy_render",
+                tool: "novada_proxy_render",
                 data: {
                     url,
                     status_code: statusCode,

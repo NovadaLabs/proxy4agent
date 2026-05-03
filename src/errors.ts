@@ -16,12 +16,12 @@ export function classifyError(err: unknown): ProxyErrorResponse {
     code: "BOT_DETECTION_SUSPECTED",
     message: `HTTP ${status} — request blocked by target`,
     recoverable: true,
-    agent_instruction: "Try agentproxy_render (real browser). Or retry with a different country/session_id. If render also returns 4xx, the page may genuinely not exist — stop retrying."
+    agent_instruction: "Try novada_proxy_render (real browser). Or retry with a different country/session_id. If render also returns 4xx, the page may genuinely not exist — stop retrying."
   }};
   if (msg.includes("timeout") || msg.includes("ECONNABORTED")) return { ok: false, error: {
     code: "TIMEOUT", message: "Request timed out",
     recoverable: true,
-    agent_instruction: "Increase the timeout parameter or retry. For JS-heavy pages, use agentproxy_render.",
+    agent_instruction: "Increase the timeout parameter or retry. For JS-heavy pages, use novada_proxy_render.",
     retry_after_seconds: 2
   }};
   if (msg.includes("ENOTFOUND") || msg.includes("EAI_AGAIN") || msg.includes("getaddrinfo")) return { ok: false, error: {
@@ -32,7 +32,7 @@ export function classifyError(err: unknown): ProxyErrorResponse {
   if (msg.includes("TLS") || msg.includes("SSL") || msg.includes("socket disconnect") || msg.includes("secure TLS") || msg.includes("certificate") || msg.includes("issuer cert")) return { ok: false, error: {
     code: "TLS_ERROR", message: "TLS/SSL connection failed",
     recoverable: true,
-    agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use agentproxy_render. If this is an unrecognized domain, verify it exists — proxy-side DNS failures may appear as TLS errors.",
+    agent_instruction: "The target rejected the proxy connection. Retry with a different country parameter or use novada_proxy_render. If this is an unrecognized domain, verify it exists — proxy-side DNS failures may appear as TLS errors.",
     retry_after_seconds: 2
   }};
   if (msg.includes("No proxy provider") || msg.includes("not configured")) return { ok: false, error: {
@@ -49,6 +49,6 @@ export function classifyError(err: unknown): ProxyErrorResponse {
   return { ok: false, error: {
     code: "UNKNOWN_ERROR", message: msg,
     recoverable: true,
-    agent_instruction: "Retry the request. Check agentproxy_status for network health."
+    agent_instruction: "Retry the request. Check novada_proxy_status for network health."
   }};
 }

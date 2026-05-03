@@ -1,8 +1,38 @@
 # Changelog
 
+## v1.8.2 (2026-05-03)
+
+### Added
+- `novada_proxy_research` — one-shot deep research tool (search → fetch → findings)
+- Schema-based LLM extraction mode for `novada_proxy_extract` (pass `schema` instead of `fields`)
+- `stripNoiseElements` — removes nav/header/footer/ads before markdown conversion
+- `content_density` score in fetch responses
+- `data.urls` convenience field in crawl and search responses
+- CHAIN WITH hints in tool descriptions
+- In-flight request deduplication for cache
+
+### Changed
+- Renamed all tools from `agentproxy_*` to `novada_proxy_*`
+- Renamed all functions from `agentproxy*` to `novadaProxy*`
+- Renamed env vars `PROXY4AGENT_*` to `NOVADA_PROXY_*` (old names kept as fallback)
+- Standardized `num` → `limit` parameter in search
+- Map tool description: "Crawl" → "Scan" to avoid confusion with crawl tool
+- Crawl now fetches raw + converts markdown locally (halves proxy credits)
+
+### Removed
+- `meta.quota.note` from all responses (saves ~15 tokens per call)
+
+### Fixed
+- Shared credential redaction (was copy-pasted in 4 places)
+- InputValidationError typed class for cleaner error classification
+- Schema key sanitization prevents prompt injection
+- Tokyo duplicate removed from countries resource
+
+---
+
 ## v1.9.0 (2026-04-13)
 
-### New tool: `agentproxy_batch_fetch`
+### New tool: `novada_proxy_batch_fetch`
 
 - Fetch 2-20 URLs concurrently through residential proxy with up to 5 parallel requests (default 3).
 - Returns `{ok, data: {requested, succeeded, failed, results[]}, meta: {latency_ms, concurrency, quota}}`.
@@ -17,7 +47,7 @@
 - Enables cost-aware agents to track consumption. Not real billing data — stub only.
 - `QuotaMeta` interface added to `src/types.ts`.
 
-### `agentproxy_session` description update
+### `novada_proxy_session` description update
 
 - Added warning: `verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds.`
 
@@ -27,12 +57,12 @@
 
 - **Structured JSON responses** — all 6 tools now return `{ok, tool, data, meta}` envelope instead of formatted prose strings. Agents can `JSON.parse()` responses directly without text parsing.
 - **`src/types.ts`** — shared `ProxySuccessResponse`, `ProxyErrorResponse`, `ProxyErrorCode` types.
-- **`agentproxy_fetch`** — returns `data.{url, status_code, content, content_type, size_bytes}` + `meta.{latency_ms, country, session_id, truncated}`.
-- **`agentproxy_search`** — returns `data.{query, engine, count, results[]}` where each result is `{title, url, snippet}`.
-- **`agentproxy_extract`** — returns `data.{url, fields}` as a key-value map.
-- **`agentproxy_render`** — returns `data.{url, content, format}`.
-- **`agentproxy_session`** — wraps fetch result, adds `verify_sticky` param. When `verify_sticky:true`, makes two httpbin.org/ip calls and sets `meta.session_verified`.
-- **`agentproxy_status`** — rewrote to do live proxy connectivity check via httpbin.org/ip instead of hitting broken gateway endpoint. Returns `data.{provider, version, capabilities, connectivity.{status, verified_via, proxy_ip, latency_ms}}`.
+- **`novada_proxy_fetch`** — returns `data.{url, status_code, content, content_type, size_bytes}` + `meta.{latency_ms, country, session_id, truncated}`.
+- **`novada_proxy_search`** — returns `data.{query, engine, count, results[]}` where each result is `{title, url, snippet}`.
+- **`novada_proxy_extract`** — returns `data.{url, fields}` as a key-value map.
+- **`novada_proxy_render`** — returns `data.{url, content, format}`.
+- **`novada_proxy_session`** — wraps fetch result, adds `verify_sticky` param. When `verify_sticky:true`, makes two httpbin.org/ip calls and sets `meta.session_verified`.
+- **`novada_proxy_status`** — rewrote to do live proxy connectivity check via httpbin.org/ip instead of hitting broken gateway endpoint. Returns `data.{provider, version, capabilities, connectivity.{status, verified_via, proxy_ip, latency_ms}}`.
 - **Centralized error classification** (`classifyError`) — maps axios errors to typed `ProxyErrorCode` with `agent_instruction` and `retry_after_seconds`. Error responses are also structured JSON.
 - **Agent-first tool descriptions** — all 6 descriptions updated with WHEN TO USE / USE INSTEAD / ON FAILURE decision trees.
 - **Concurrent render limit** — now returns structured JSON error instead of plain text.
@@ -48,7 +78,7 @@
 - **Smithery badge** added to README.
 - **Compatible With section** added — install instructions for Claude Code, Cursor, Windsurf, Cline, Continue, and Smithery. JSON config block for non-Claude clients.
 
-### Phase 5 — agentproxy_render live verification
+### Phase 5 — novada_proxy_render live verification
 
 - **End-to-end test confirmed** — real Chromium session via Novada Browser API.
 - **React.dev** (266 KB JS-heavy SPA): full page rendered, navigation, components, code examples extracted cleanly.
@@ -69,7 +99,7 @@
 - **`PROXY_URL` support** — set `PROXY_URL=http://user:pass@host:port` to use any HTTP proxy provider. Instantly compatible with BrightData, Smartproxy, Oxylabs, IPRoyal, and any standard HTTP CONNECT proxy.
 - **Provider priority** — Novada wins if both `NOVADA_PROXY_USER` and `PROXY_URL` are set. Generic adapter is a fallback, not a replacement.
 - **Capability warnings** — if `country`, `city`, or `session_id` params are passed to the generic adapter (which can't encode them automatically), a warning is logged to stderr. The fetch still proceeds — params are simply not injected into the URL.
-- **`agentproxy_status` upgraded** — now shows active provider name, last-verified date, and supported capabilities alongside network health.
+- **`novada_proxy_status` upgraded** — now shows active provider name, last-verified date, and supported capabilities alongside network health.
 - **README Providers section** — documents Novada + generic adapter with install commands for BrightData, Smartproxy, Oxylabs, IPRoyal.
 
 ## v1.4.5 (2026-04-09)
@@ -79,7 +109,7 @@
 - **`src/adapters/` layer** — `ProxyAdapter` interface, `NovadaAdapter`, registry + `resolveAdapter()`. Adding a new provider = one new file, one registry line.
 - **Auto-detection** — credentials read once at startup; first adapter with valid credentials wins. Novada always first.
 - **Systematic credential redaction** — error messages scrub all sensitive adapter fields, not just hardcoded env var names.
-- **`agentproxy_status`** — now shows active provider with verified date and capabilities.
+- **`novada_proxy_status`** — now shows active provider with verified date and capabilities.
 - **Missing credentials error** — now lists all registered providers with their credential docs.
 
 ---
@@ -127,7 +157,7 @@
 ## v1.4.0 (2026-04-09)
 
 ### What's new
-- **Renamed: `agentproxy` → `proxy4agent`** — previous name was too generic and conflicted with `agent-proxy` on npm. `proxy4agent` is distinctive, available, and captures what the product does (veils AI agent requests behind residential IPs).
+- **Renamed to `novada-proxy-mcp`** — unified product naming under the Novada brand.
 - **CHANGELOG.md** — added to track what changed in every version going forward.
 - **`--help` text reordered** — proxy credentials listed first (core product), API key and browser WS listed after (secondary tools).
 - **`http-proxy-agent` added** — `httpAgent` now correctly uses `HttpProxyAgent` for plain HTTP targets; `httpsAgent` uses `HttpsProxyAgent` for HTTPS (CONNECT tunnel + TLS). Both were previously the same `HttpsProxyAgent` instance.
@@ -135,13 +165,13 @@
 
 ### Bug fixes
 - **NOVADA_PROXY_USER not redacted in error messages** — proxy usernames (e.g. `user123-zone-res-region-us`) appeared verbatim in 407/connection error messages. Added `replaceAll` redaction alongside the existing pass/key redaction.
-- **IPLoop fallback removed from `agentproxy_status`** — `gateway.iploop.io:9443/health` was silently called when the Novada status endpoint failed. Removed entirely; status now returns UNKNOWN cleanly if unreachable.
+- **IPLoop fallback removed from `novada_proxy_status`** — `gateway.iploop.io:9443/health` was silently called when the Novada status endpoint failed. Removed entirely; status now returns UNKNOWN cleanly if unreachable.
 - **Render timeout applied twice** — `page.goto()` and `page.waitForSelector()` each received the full timeout, so real elapsed time could be 2× the user-specified value. Fixed with a shared deadline.
 - **`decompress()` silent failure** — when a server declared `Content-Encoding: gzip` but body was undecompressable, the function fell through to returning raw binary as UTF-8. It now throws on explicitly-declared encodings (triggering the retry loop); silent fallback retained only when no header is present.
 - **Legacy `AGENTPROXY_PROXY_HOST` / `AGENTPROXY_PROXY_PORT` env vars removed** — stale after rename, undocumented.
 - **README "Why AgentProxy" heading** — renamed to "Why Proxy4Agent".
-- **`agentproxy_status` + `agentproxy_session` + `agentproxy_render` URL scheme validation** — all three `validateXxxParams` functions now check `http://`/`https://` prefix at the boundary, consistent with `fetch.ts`.
-- **`agentproxy_search` country/language injection** — `country` and `language` params forwarded to API without validation; now checked against `SAFE_LOCALE` pattern.
+- **`novada_proxy_status` + `novada_proxy_session` + `novada_proxy_render` URL scheme validation** — all three `validateXxxParams` functions now check `http://`/`https://` prefix at the boundary, consistent with `fetch.ts`.
+- **`novada_proxy_search` country/language injection** — `country` and `language` params forwarded to API without validation; now checked against `SAFE_LOCALE` pattern.
 - **`--list-tools` split broke on URLs** — was splitting description on first `.`, which broke descriptions containing `.com` URLs. Now splits on `. ` (period + space).
 - **`node -e require(...)` in ESM package** — `build` script used CommonJS `require` in a `"type": "module"` package; fixed with `--input-type=commonjs`.
 - **Class renamed** — `AgentProxyServer` → `Proxy4AgentServer`.
@@ -154,7 +184,7 @@
 - **Full Novada native migration** — removed all IPLoop references from user-facing code
 - **Correct Novada proxy auth format** — `USERNAME-zone-res[-region-XX][-city-YY][-session-ID]` discovered from official docs and confirmed via live testing
 - **`NOVADA_PROXY_HOST` env var** — account-specific host for reliable sticky sessions (defaults to `super.novada.pro` for rotating)
-- **`agentproxy_render` rewrite** — switched from dead REST endpoint to real Novada Browser API (WebSocket + puppeteer-core); page always closed in `finally` to prevent server-side session leaks
+- **`novada_proxy_render` rewrite** — switched from dead REST endpoint to real Novada Browser API (WebSocket + puppeteer-core); page always closed in `finally` to prevent server-side session leaks
 - **Per-tool missing credential errors** — each tool now surfaces actionable instructions when its specific env var is missing
 - **`replaceAll` credential redaction** — all env vars fully redacted from error messages (not just first occurrence)
 
@@ -184,7 +214,7 @@
 - **`maxContentLength: 50MB`** — prevents axios from choking on large pages
 
 ### Bug fixes
-- `agentproxy_fetch` was using `decompress: true` which conflicted with the https-proxy-agent CONNECT tunnel on large pages
+- `novada_proxy_fetch` was using `decompress: true` which conflicted with the https-proxy-agent CONNECT tunnel on large pages
 - `htmlToMarkdown` and `unicodeSafeTruncate` duplicated between files — consolidated into utils.ts
 
 ---
@@ -193,9 +223,9 @@
 
 ### What's new
 - **Single `NOVADA_API_KEY`** — replaced multi-key setup with one key for all Novada API access
-- **`agentproxy_render`** — new tool for JavaScript-heavy pages using Novada Browser API
-- **`agentproxy_status`** — new tool for proxy network health check (no credentials required)
-- **`agentproxy_session`** — sticky session tool with dedicated endpoint
+- **`novada_proxy_render`** — new tool for JavaScript-heavy pages using Novada Browser API
+- **`novada_proxy_status`** — new tool for proxy network health check (no credentials required)
+- **`novada_proxy_session`** — sticky session tool with dedicated endpoint
 
 ---
 
@@ -203,7 +233,7 @@
 
 Initial release.
 
-- `agentproxy_fetch` — residential proxy fetch with country/city/session targeting
-- `agentproxy_search` — structured web search via Novada Scraper API
+- `novada_proxy_fetch` — residential proxy fetch with country/city/session targeting
+- `novada_proxy_search` — structured web search via Novada Scraper API
 - 5 MCP tools total
 - Node.js 18+, stdio transport

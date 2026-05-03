@@ -12,8 +12,8 @@ export interface MapParams {
  * extracts all <a href> links, normalises them to absolute URLs, filters to the
  * same domain, and returns the list.
  *
- * For a full sitemap crawl, agents should call agentproxy_map iteratively on
+ * For a full sitemap crawl, agents should call novada_proxy_map iteratively on
  * the discovered URLs or use the sitemap.xml directly.
  */
-export declare function agentproxyMap(params: MapParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
+export declare function novadaProxyMap(params: MapParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
 export declare function validateMapParams(raw: Record<string, unknown>): MapParams;

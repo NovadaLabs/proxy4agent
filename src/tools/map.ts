@@ -1,4 +1,4 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { SAFE_COUNTRY, QUOTA_NOTE } from "../validation.js";
@@ -17,10 +17,10 @@ export interface MapParams {
  * extracts all <a href> links, normalises them to absolute URLs, filters to the
  * same domain, and returns the list.
  *
- * For a full sitemap crawl, agents should call agentproxy_map iteratively on
+ * For a full sitemap crawl, agents should call novada_proxy_map iteratively on
  * the discovered URLs or use the sitemap.xml directly.
  */
-export async function agentproxyMap(
+export async function novadaProxyMap(
   params: MapParams,
   adapter: ProxyAdapter,
   credentials: ProxyCredentials
@@ -41,7 +41,7 @@ export async function agentproxyMap(
   }
 
   // Fetch the starting page
-  const fetchResultStr = await agentproxyFetch(
+  const fetchResultStr = await novadaProxyFetch(
     { url, format: "raw", country, timeout },
     adapter,
     credentials
@@ -105,7 +105,7 @@ export async function agentproxyMap(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_map",
+    tool: "novada_proxy_map",
     data: {
       source_url: url,
       domain: hostname,

@@ -2,7 +2,7 @@ import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
 import { VERSION } from "../config.js";
 import { QUOTA_NOTE } from "../validation.js";
-export async function agentproxyStatus(adapter, credentials) {
+export async function novadaProxyStatus(adapter, credentials) {
     const startTime = Date.now();
     let connectivity_status = "UNAVAILABLE";
     let proxy_ip;
@@ -41,7 +41,7 @@ export async function agentproxyStatus(adapter, credentials) {
     }
     const result = {
         ok: true,
-        tool: "agentproxy_status",
+        tool: "novada_proxy_status",
         data: {
             provider: adapter?.displayName || "none configured",
             version: VERSION,

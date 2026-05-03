@@ -24,11 +24,11 @@ startCommand:
         description: "Novada proxy port. Default: 7777."
       NOVADA_API_KEY:
         type: string
-        description: "Novada Scraper API key for agentproxy_search. Get from novada.com → Dashboard → API Keys."
+        description: "Novada Scraper API key for novada_proxy_search. Get from novada.com → Dashboard → API Keys."
         secret: true
       NOVADA_BROWSER_WS:
         type: string
-        description: "Novada Browser API WebSocket URL for agentproxy_render (real Chromium). Get from novada.com → Dashboard → Browser API → Playground."
+        description: "Novada Browser API WebSocket URL for novada_proxy_render (real Chromium). Get from novada.com → Dashboard → Browser API → Playground."
         secret: true
       BRIGHTDATA_USER:
         type: string

@@ -5,7 +5,7 @@ import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { QUOTA_NOTE } from "../validation.js";
 
-export async function agentproxyStatus(
+export async function novadaProxyStatus(
   adapter?: ProxyAdapter,
   credentials?: ProxyCredentials
 ): Promise<string> {
@@ -48,7 +48,7 @@ export async function agentproxyStatus(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_status",
+    tool: "novada_proxy_status",
     data: {
       provider: adapter?.displayName || "none configured",
       version: VERSION,

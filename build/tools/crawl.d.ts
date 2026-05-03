@@ -17,5 +17,5 @@ export interface CrawlPageResult {
     content?: string;
     error?: string;
 }
-export declare function agentproxyCrawl(params: CrawlParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
+export declare function novadaProxyCrawl(params: CrawlParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
 export declare function validateCrawlParams(raw: Record<string, unknown>): CrawlParams;

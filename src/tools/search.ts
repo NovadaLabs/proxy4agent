@@ -13,7 +13,7 @@ export interface SearchParams {
   language?: string;
 }
 
-export async function agentproxySearch(
+export async function novadaProxySearch(
   params: SearchParams,
   novadaApiKey: string
 ): Promise<string> {
@@ -87,7 +87,7 @@ export async function agentproxySearch(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_search",
+    tool: "novada_proxy_search",
     data: {
       query,
       engine,

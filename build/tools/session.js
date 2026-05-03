@@ -1,11 +1,11 @@
 import axios from "axios";
 import { HttpsProxyAgent } from "https-proxy-agent";
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID, QUOTA_NOTE } from "../validation.js";
-export async function agentproxySession(params, adapter, credentials) {
+export async function novadaProxySession(params, adapter, credentials) {
     const { verify_sticky = false } = params;
     // Make the main fetch call
-    const fetchResultStr = await agentproxyFetch({
+    const fetchResultStr = await novadaProxyFetch({
         url: params.url,
         session_id: params.session_id,
         country: params.country,
@@ -57,7 +57,7 @@ export async function agentproxySession(params, adapter, credentials) {
     // Rebuild response with session_verified in meta
     const result = {
         ...fetchResult,
-        tool: "agentproxy_session",
+        tool: "novada_proxy_session",
         meta: {
             ...fetchResult.meta,
             session_id: params.session_id,

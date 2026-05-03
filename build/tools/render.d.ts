@@ -4,5 +4,5 @@ export interface RenderParams {
     wait_for?: string;
     timeout?: number;
 }
-export declare function agentproxyRender(params: RenderParams, browserWsEndpoint: string): Promise<string>;
+export declare function novadaProxyRender(params: RenderParams, browserWsEndpoint: string): Promise<string>;
 export declare function validateRenderParams(raw: Record<string, unknown>): RenderParams;

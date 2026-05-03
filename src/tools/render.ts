@@ -10,7 +10,7 @@ export interface RenderParams {
   timeout?: number;
 }
 
-export async function agentproxyRender(
+export async function novadaProxyRender(
   params: RenderParams,
   browserWsEndpoint: string
 ): Promise<string> {
@@ -61,7 +61,7 @@ export async function agentproxyRender(
 
       const result: ProxySuccessResponse = {
         ok: true,
-        tool: "agentproxy_render",
+        tool: "novada_proxy_render",
         data: {
           url,
           status_code: statusCode,

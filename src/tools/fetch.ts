@@ -3,7 +3,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { gunzipSync, brotliDecompressSync, inflateSync } from "zlib";
 import { DEFAULT_USER_AGENT } from "../config.js";
-import { htmlToMarkdown, unicodeSafeTruncate } from "../utils.js";
+import { htmlToMarkdown, unicodeSafeTruncate, countHtmlTags, contentDensity } from "../utils.js";
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID, QUOTA_NOTE } from "../validation.js";
@@ -79,7 +79,7 @@ function decompress(buffer: Buffer, encoding: string | undefined): string {
   return buffer.toString("utf-8");
 }
 
-export async function agentproxyFetch(
+export async function novadaProxyFetch(
   params: FetchParams,
   adapter: ProxyAdapter,
   credentials: ProxyCredentials
@@ -168,9 +168,15 @@ export async function agentproxyFetch(
         ? unicodeSafeTruncate(output, 100_000) + "\n\n[... truncated — page is large]"
         : output;
 
+      // Compute content density: ratio of useful text to tag overhead
+      const tagCount = isHtml ? countHtmlTags(bodyForConversion) : 0;
+      const content_density = isHtml
+        ? contentDensity(finalOutput.length, tagCount)
+        : 1.0;
+
       const result: ProxySuccessResponse = {
         ok: true,
-        tool: "agentproxy_fetch",
+        tool: "novada_proxy_fetch",
         data: {
           url,
           status_code: response.status,
@@ -184,6 +190,7 @@ export async function agentproxyFetch(
           country: params.country,
           session_id: params.session_id,
           truncated,
+          content_density,
           quota: { credits_estimated: 1, note: QUOTA_NOTE },
           cache_hit: false,
         },

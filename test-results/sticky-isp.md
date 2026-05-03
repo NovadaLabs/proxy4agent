@@ -22,7 +22,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,
@@ -51,7 +51,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,

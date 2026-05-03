@@ -1,7 +1,7 @@
 ---
 name: novada-proxy
-description: Residential proxy MCP server for AI agents — 9 tools to fetch, crawl, batch, extract, map, search, render through 2M+ real IPs. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, response cache. Multi-provider (Novada, BrightData, Smartproxy, Oxylabs).
-version: 1.8.1
+description: Residential proxy MCP server for AI agents — 10 tools to fetch, crawl, batch, extract, map, search, research, render through 2M+ real IPs. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, response cache. Multi-provider (Novada, BrightData, Smartproxy, Oxylabs).
+version: 1.8.2
 metadata:
   openclaw:
     requires:
@@ -12,7 +12,7 @@ metadata:
     os: [macos, linux, windows]
     install:
       - kind: node
-        formula: novada-proxy-mcp@1.8.1
+        formula: novada-proxy-mcp@1.8.2
         bins: [novada-proxy-mcp, novada-proxy]
 ---
 
@@ -47,67 +47,67 @@ claude mcp add novada-proxy-mcp \
 
 ### Optional credentials
 
-- `NOVADA_API_KEY` — enables `agentproxy_search` (Google search)
-- `NOVADA_BROWSER_WS` — enables `agentproxy_render` (JS rendering via real Chromium)
+- `NOVADA_API_KEY` — enables `novada_proxy_search` (Google search)
+- `NOVADA_BROWSER_WS` — enables `novada_proxy_render` (JS rendering via real Chromium)
 - `NOVADA_PROXY_ZONE` — proxy type: `res` (residential, default), `isp` (rotating ISP), `dcp` (datacenter)
 
 ## When to use which tool
 
 ```
-Scrape a single URL         → agentproxy_fetch
-Need structured fields      → agentproxy_extract
-Scrape 2-20 URLs at once    → agentproxy_batch_fetch
-Discover URLs on a page     → agentproxy_map → agentproxy_batch_fetch
-Crawl a whole site          → agentproxy_crawl (recursive BFS, depth 1-5)
-Login + multi-page flow     → agentproxy_session (same session_id)
-Search the web              → agentproxy_search
-JS-heavy SPA / blank page   → agentproxy_render
-Check proxy health          → agentproxy_status
+Scrape a single URL         → novada_proxy_fetch
+Need structured fields      → novada_proxy_extract
+Scrape 2-20 URLs at once    → novada_proxy_batch_fetch
+Discover URLs on a page     → novada_proxy_map → novada_proxy_batch_fetch
+Crawl a whole site          → novada_proxy_crawl (recursive BFS, depth 1-5)
+Login + multi-page flow     → novada_proxy_session (same session_id)
+Search the web              → novada_proxy_search
+JS-heavy SPA / blank page   → novada_proxy_render
+Check proxy health          → novada_proxy_status
 ```
 
 ## 9 Tools
 
-### agentproxy_fetch
+### novada_proxy_fetch
 Fetch any URL through a residential proxy. Returns structured JSON with content, status, and metadata. Responses are cached 300s by default — repeated calls cost zero credits (`meta.cache_hit: true`).
 
 Parameters: `url` (required), `country`, `city`, `session_id`, `format` (markdown/raw), `timeout` (1-120s)
 
-### agentproxy_batch_fetch
+### novada_proxy_batch_fetch
 Fetch 2-20 URLs concurrently. Up to 5x faster than sequential calls. Per-item errors are captured individually.
 
 Parameters: `urls` (2-20, required), `concurrency` (1-5, default 3), `country`, `format`, `timeout`
 
-### agentproxy_crawl
+### novada_proxy_crawl
 Recursively crawl a website via BFS. Discovers internal links at each depth level, deduplicates, and returns the full URL tree with metadata.
 
 Parameters: `url` (required), `depth` (1-5, default 2), `limit` (10-200, default 50), `include_content` (boolean), `country`, `format`, `timeout`
 
-### agentproxy_extract
+### novada_proxy_extract
 Extract structured fields from any URL using heuristic pattern matching (meta tags, Open Graph, JSON-LD, `<img>` fallback, relative URL resolution). Set `render_fallback: true` to auto-retry via Chromium if blocked.
 
 Parameters: `url` (required), `fields` (required array), `render_fallback`, `country`, `timeout`
 
-### agentproxy_map
-Discover all internal links on a single page. Use as the discovery step before `agentproxy_batch_fetch`.
+### novada_proxy_map
+Discover all internal links on a single page. Use as the discovery step before `novada_proxy_batch_fetch`.
 
 Parameters: `url` (required), `limit` (10-200, default 50), `include_external`, `country`, `timeout`
 
-### agentproxy_session
+### novada_proxy_session
 Sticky session — same IP across all calls with the same `session_id`. Use for login flows, paginated scraping, price monitoring.
 
 Parameters: `session_id` (required), `url` (required), `country`, `city`, `verify_sticky`, `format`, `timeout`
 
-### agentproxy_search
+### novada_proxy_search
 Structured Google search via Novada Scraper API. Returns titles, URLs, and snippets as clean JSON.
 
 Requires: `NOVADA_API_KEY`
 
-### agentproxy_render [BETA]
+### novada_proxy_render [BETA]
 Render JavaScript-heavy pages using real Chromium. Use for SPAs, React/Vue apps.
 
 Requires: `NOVADA_BROWSER_WS` | ~5 proxy credits per call
 
-### agentproxy_status
+### novada_proxy_status
 Check proxy network connectivity, provider, and version.
 
 ## Error codes
@@ -116,7 +116,7 @@ Every error includes `code`, `recoverable`, and `agent_instruction`:
 
 | Code | Meaning | Action |
 |------|---------|--------|
-| `BOT_DETECTION_SUSPECTED` | 4xx — target blocked | Retry with `agentproxy_render` or different `country`. If render also fails, page may not exist. |
+| `BOT_DETECTION_SUSPECTED` | 4xx — target blocked | Retry with `novada_proxy_render` or different `country`. If render also fails, page may not exist. |
 | `TLS_ERROR` | TLS/SSL failed | Retry with different `country`. May be DNS issue for unknown domains. |
 | `TIMEOUT` | Request timed out | Increase `timeout` or retry |
 | `RATE_LIMITED` | HTTP 429 | Wait 5s and retry |

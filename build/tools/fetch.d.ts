@@ -13,5 +13,5 @@ export interface FetchParams {
     format?: "raw" | "markdown";
     timeout?: number;
 }
-export declare function agentproxyFetch(params: FetchParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
+export declare function novadaProxyFetch(params: FetchParams, adapter: ProxyAdapter, credentials: ProxyCredentials): Promise<string>;
 export declare function validateFetchParams(raw: Record<string, unknown>): FetchParams;

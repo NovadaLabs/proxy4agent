@@ -1,2 +1,2 @@
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
-export declare function agentproxyStatus(adapter?: ProxyAdapter, credentials?: ProxyCredentials): Promise<string>;
+export declare function novadaProxyStatus(adapter?: ProxyAdapter, credentials?: ProxyCredentials): Promise<string>;

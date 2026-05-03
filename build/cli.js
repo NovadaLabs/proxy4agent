@@ -1,7 +1,7 @@
 #!/usr/bin/env node
 import { parseArgs } from "node:util";
 import { resolveAdapter, listAdapters } from "./adapters/index.js";
-import { agentproxyFetch, validateFetchParams, agentproxyBatchFetch, validateBatchFetchParams, agentproxySearch, validateSearchParams, agentproxyExtract, validateExtractParams, agentproxyMap, validateMapParams, agentproxyCrawl, validateCrawlParams, agentproxyRender, validateRenderParams, agentproxySession, validateSessionParams, agentproxyStatus, } from "./tools/index.js";
+import { novadaProxyFetch, validateFetchParams, novadaProxyBatchFetch, validateBatchFetchParams, novadaProxySearch, validateSearchParams, novadaProxyExtract, validateExtractParams, novadaProxyMap, validateMapParams, novadaProxyCrawl, validateCrawlParams, novadaProxyResearch, validateResearchParams, novadaProxyRender, validateRenderParams, novadaProxySession, validateSessionParams, novadaProxyStatus, } from "./tools/index.js";
 import { classifyError } from "./errors.js";
 import { VERSION, NPM_PACKAGE } from "./config.js";
 // ─── Credential Resolution ──────────────────────────────────────────────────
@@ -189,6 +189,7 @@ Commands:
   fetch <url>              Fetch URL through residential proxy
   batch <url1> <url2> ...  Fetch multiple URLs concurrently
   search <query>           Web search via Google
+  research <query>         One-shot deep research (search + fetch + synthesize)
   extract <url>            Extract structured fields from URL
   map <url>                Discover all internal links on a page
   crawl <url>              Recursively crawl a site (BFS, depth 1-5)
@@ -236,10 +237,20 @@ Options:
   --country <CC>       Localized results (e.g. us, uk, de)
   --language <lang>    Language code (e.g. en, zh, de)
   --human              Pretty-print output for humans`,
-        extract: `Usage: novada-proxy extract <url> --fields title,price,description [options]
+        research: `Usage: novada-proxy research <query> [options]
 
 Options:
-  --fields <list>      Comma-separated field names to extract (required)
+  --depth <level>      Research depth: quick (3), standard (5), deep (10 sources)
+  --country <CC>       2-letter country code for geo-targeting
+  --timeout <sec>      Per-source timeout in seconds, 1-120 (default: 60)
+  --human              Pretty-print output for humans`,
+        extract: `Usage: novada-proxy extract <url> --fields title,price,description [options]
+       novada-proxy extract <url> --schema '{"price":"Current price in USD"}' [options]
+
+Options:
+  --fields <list>      Comma-separated field names to extract (heuristic mode)
+  --schema <json>      JSON object for LLM extraction mode: {"field":"description"}
+                       Returns cleaned content + extraction prompt (mutually exclusive with --fields)
   --country <CC>       2-letter country code
   --city <name>        City-level targeting
   --session_id <id>    Sticky session ID
@@ -326,7 +337,7 @@ async function handleFetch(args) {
         format: values.format,
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
     });
-    const result = await agentproxyFetch(params, proxyContext.adapter, proxyContext.credentials);
+    const result = await novadaProxyFetch(params, proxyContext.adapter, proxyContext.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -363,7 +374,7 @@ async function handleBatch(args) {
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
         concurrency: values.concurrency !== undefined ? Number(values.concurrency) : undefined,
     });
-    const result = await agentproxyBatchFetch(params, proxyContext.adapter, proxyContext.credentials);
+    const result = await novadaProxyBatchFetch(params, proxyContext.adapter, proxyContext.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -399,7 +410,45 @@ async function handleSearch(args) {
         country: values.country,
         language: values.language,
     });
-    const result = await agentproxySearch(params, NOVADA_API_KEY);
+    const result = await novadaProxySearch(params, NOVADA_API_KEY);
+    if (values.human) {
+        prettyPrint(result);
+    }
+    else {
+        writeJson(JSON.parse(result));
+    }
+}
+async function handleResearch(args) {
+    const { values, positionals } = parseArgs({
+        args,
+        options: {
+            depth: { type: "string" },
+            country: { type: "string" },
+            timeout: { type: "string" },
+            human: { type: "boolean", default: false },
+            help: { type: "boolean", short: "h", default: false },
+        },
+        allowPositionals: true,
+        strict: false,
+    });
+    if (values.help) {
+        printSubcommandHelp("research");
+        return;
+    }
+    const query = positionals.join(" ");
+    if (!query)
+        invalidArgs("research", "Missing required argument: <query>");
+    if (!NOVADA_API_KEY)
+        missingApiKeyError();
+    if (!proxyContext)
+        missingProxyError();
+    const params = validateResearchParams({
+        query,
+        depth: values.depth,
+        country: values.country,
+        timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
+    });
+    const result = await novadaProxyResearch(params, proxyContext.adapter, proxyContext.credentials, NOVADA_API_KEY);
     if (values.human) {
         prettyPrint(result);
     }
@@ -412,6 +461,7 @@ async function handleExtract(args) {
         args,
         options: {
             fields: { type: "string" },
+            schema: { type: "string" },
             country: { type: "string" },
             city: { type: "string" },
             session_id: { type: "string" },
@@ -430,21 +480,33 @@ async function handleExtract(args) {
     const url = positionals[0];
     if (!url)
         invalidArgs("extract", "Missing required argument: <url>");
-    if (!values.fields || typeof values.fields !== "string")
-        invalidArgs("extract", "Missing required option: --fields title,price,description");
+    if (!values.fields && !values.schema)
+        invalidArgs("extract", "Missing required option: --fields title,price,description or --schema '{\"field\":\"description\"}'");
     if (!proxyContext)
         missingProxyError();
-    const fields = values.fields.split(",").map((f) => f.trim()).filter(Boolean);
+    let schema;
+    if (values.schema) {
+        try {
+            schema = JSON.parse(values.schema);
+        }
+        catch {
+            invalidArgs("extract", `--schema must be valid JSON (e.g. '{"price":"Current price in USD"}')`);
+        }
+    }
+    const fields = values.fields
+        ? values.fields.split(",").map((f) => f.trim()).filter(Boolean)
+        : [];
     const params = validateExtractParams({
         url,
         fields,
+        schema,
         country: values.country,
         city: values.city,
         session_id: values.session_id,
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
         render_fallback: values.render_fallback,
     });
-    const result = await agentproxyExtract(params, proxyContext.adapter, proxyContext.credentials, NOVADA_BROWSER_WS);
+    const result = await novadaProxyExtract(params, proxyContext.adapter, proxyContext.credentials, NOVADA_BROWSER_WS);
     if (values.human) {
         prettyPrint(result);
     }
@@ -482,7 +544,7 @@ async function handleMap(args) {
         country: values.country,
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
     });
-    const result = await agentproxyMap(params, proxyContext.adapter, proxyContext.credentials);
+    const result = await novadaProxyMap(params, proxyContext.adapter, proxyContext.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -524,7 +586,7 @@ async function handleCrawl(args) {
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
         format: values.format,
     });
-    const result = await agentproxyCrawl(params, proxyContext.adapter, proxyContext.credentials);
+    const result = await novadaProxyCrawl(params, proxyContext.adapter, proxyContext.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -560,7 +622,7 @@ async function handleRender(args) {
         wait_for: values.wait_for,
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
     });
-    const result = await agentproxyRender(params, NOVADA_BROWSER_WS);
+    const result = await novadaProxyRender(params, NOVADA_BROWSER_WS);
     if (values.human) {
         prettyPrint(result);
     }
@@ -604,7 +666,7 @@ async function handleSession(args) {
         timeout: values.timeout !== undefined ? Number(values.timeout) : undefined,
         verify_sticky: values.verify_sticky,
     });
-    const result = await agentproxySession(params, proxyContext.adapter, proxyContext.credentials);
+    const result = await novadaProxySession(params, proxyContext.adapter, proxyContext.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -626,7 +688,7 @@ async function handleStatus(args) {
         printSubcommandHelp("status");
         return;
     }
-    const result = await agentproxyStatus(proxyContext?.adapter, proxyContext?.credentials);
+    const result = await novadaProxyStatus(proxyContext?.adapter, proxyContext?.credentials);
     if (values.human) {
         prettyPrint(result);
     }
@@ -648,6 +710,9 @@ async function main() {
                 break;
             case "search":
                 await handleSearch(restArgs);
+                break;
+            case "research":
+                await handleResearch(restArgs);
                 break;
             case "extract":
                 await handleExtract(restArgs);

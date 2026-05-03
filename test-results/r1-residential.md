@@ -23,7 +23,7 @@ Raw JSON:
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_fetch",
+  "tool": "novada_proxy_fetch",
   "data": {
     "url": "https://en.wikipedia.org/wiki/Web_scraping",
     "status_code": 200,
@@ -63,7 +63,7 @@ Raw JSON:
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_extract",
+  "tool": "novada_proxy_extract",
   "data": {
     "url": "https://www.allbirds.com/products/mens-tree-runners",
     "fields": {
@@ -106,7 +106,7 @@ Raw JSON:
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_crawl",
+  "tool": "novada_proxy_crawl",
   "data": {
     "start_url": "https://example.com",
     "domain": "example.com",
@@ -154,7 +154,7 @@ Raw JSON:
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_fetch",
+  "tool": "novada_proxy_fetch",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,
@@ -204,7 +204,7 @@ Raw JSON:
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_map",
+  "tool": "novada_proxy_map",
   "data": {
     "source_url": "https://news.ycombinator.com",
     "domain": "news.ycombinator.com",

@@ -1,4 +1,4 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { SAFE_COUNTRY, QUOTA_NOTE } from "../validation.js";
@@ -139,7 +139,7 @@ async function mapWithConcurrency<T, R>(
 
 const CRAWL_CONCURRENCY = 3;
 
-export async function agentproxyCrawl(
+export async function novadaProxyCrawl(
   params: CrawlParams,
   adapter: ProxyAdapter,
   credentials: ProxyCredentials
@@ -190,7 +190,7 @@ export async function agentproxyCrawl(
       CRAWL_CONCURRENCY,
       async (item: QueueItem): Promise<{ page: CrawlPageResult; newLinks: string[] }> => {
         try {
-          const fetchResultStr = await agentproxyFetch(
+          const fetchResultStr = await novadaProxyFetch(
             { url: item.url, format: include_content ? format : "raw", country, timeout },
             adapter,
             credentials
@@ -203,7 +203,7 @@ export async function agentproxyCrawl(
 
           // Extract links from raw HTML for link discovery
           // When include_content=true and format=markdown, we still need raw HTML for links.
-          // But agentproxyFetch already converts to markdown. For link extraction we use
+          // But novadaProxyFetch already converts to markdown. For link extraction we use
           // the fetched content as-is — markdown conversion preserves link text but strips
           // <a> tags. So we always fetch raw for link extraction, and optionally return
           // markdown content.
@@ -214,7 +214,7 @@ export async function agentproxyCrawl(
             // We fetched as markdown for the user's content, but we need raw HTML for links.
             // Cache key is url|format|country, so url|markdown|country and url|raw|country
             // are DIFFERENT keys — the raw fetch costs a separate credit.
-            const rawResultStr = await agentproxyFetch(
+            const rawResultStr = await novadaProxyFetch(
               { url: item.url, format: "raw", country, timeout },
               adapter,
               credentials
@@ -295,7 +295,7 @@ export async function agentproxyCrawl(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_crawl",
+    tool: "novada_proxy_crawl",
     data: {
       start_url: url,
       domain: hostname,

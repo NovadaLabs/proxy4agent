@@ -1,6 +1,6 @@
-import { agentproxyFetch, type FetchParams } from "./fetch.js";
-import { agentproxyRender } from "./render.js";
-import { decodeHtmlEntities } from "../utils.js";
+import { novadaProxyFetch, type FetchParams } from "./fetch.js";
+import { novadaProxyRender } from "./render.js";
+import { decodeHtmlEntities, htmlToMarkdown, unicodeSafeTruncate, countHtmlTags, contentDensity } from "../utils.js";
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID } from "../validation.js";
@@ -8,11 +8,12 @@ import { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID } from "../validation.js";
 export interface ExtractParams {
   url: string;
   fields: string[];
+  schema?: Record<string, string>;
   country?: string;
   city?: string;
   session_id?: string;
   timeout?: number;
-  render_fallback?: boolean;  // if true, auto-retry via agentproxy_render on TLS/bot failure
+  render_fallback?: boolean;  // if true, auto-retry via novada_proxy_render on TLS/bot failure
 }
 
 /**
@@ -22,7 +23,7 @@ export interface ExtractParams {
  * requested field. This is a lightweight alternative to LLM-based extraction —
  * fast, deterministic, and zero additional API cost.
  *
- * For more complex extraction needs, agents can use agentproxy_fetch(format="raw")
+ * For more complex extraction needs, agents can use novada_proxy_fetch(format="raw")
  * and do their own parsing.
  */
 // Error messages that indicate the proxy fetch failed hard and render may succeed
@@ -36,13 +37,13 @@ export function shouldEscalateToRender(msg: string): boolean {
   return RENDER_ESCALATION_PATTERNS.some(p => msg.toLowerCase().includes(p.toLowerCase()));
 }
 
-export async function agentproxyExtract(
+export async function novadaProxyExtract(
   params: ExtractParams,
   adapter: ProxyAdapter,
   credentials: ProxyCredentials,
   browserWsEndpoint?: string
 ): Promise<string> {
-  const { url, fields, country, city, session_id, timeout = 60, render_fallback = false } = params;
+  const { url, fields, schema, country, city, session_id, timeout = 60, render_fallback = false } = params;
 
   const startTime = Date.now();
   let html = "";
@@ -52,7 +53,7 @@ export async function agentproxyExtract(
   // Attempt 1: proxy fetch (fast, cheap)
   try {
     const fetchParams: FetchParams = { url, format: "raw", country, city, session_id, timeout };
-    const fetchResultStr = await agentproxyFetch(fetchParams, adapter, credentials);
+    const fetchResultStr = await novadaProxyFetch(fetchParams, adapter, credentials);
     const fetchResult = JSON.parse(fetchResultStr) as ProxySuccessResponse;
     html = (fetchResult.data.content as string) || "";
   } catch (err) {
@@ -60,7 +61,7 @@ export async function agentproxyExtract(
     // Auto-escalate to render if enabled and the error suggests a JS/TLS block
     if (render_fallback && browserWsEndpoint && shouldEscalateToRender(msg)) {
       try {
-        const renderResultStr = await agentproxyRender({ url, format: "html", timeout }, browserWsEndpoint);
+        const renderResultStr = await novadaProxyRender({ url, format: "html", timeout }, browserWsEndpoint);
         const renderResult = JSON.parse(renderResultStr) as ProxySuccessResponse;
         html = (renderResult.data.content as string) || "";
         usedRender = true;
@@ -76,6 +77,51 @@ export async function agentproxyExtract(
 
   const latency_ms = Date.now() - startTime;
 
+  // ── Schema mode: LLM-ready extraction ─────────────────────────────────────
+  if (schema) {
+    const markdown = htmlToMarkdown(html);
+    const truncated = unicodeSafeTruncate(markdown, 50000);
+    const tagCount = countHtmlTags(html);
+    const density = contentDensity(truncated.length, tagCount);
+
+    const schemaEntries = Object.entries(schema)
+      .map(([key, desc]) => `- ${key}: ${desc}`)
+      .join("\n");
+
+    const extractionPrompt =
+      `Extract the following fields from the page content provided in data.content of this response. Return ONLY a JSON object with the field names as keys. If a field cannot be found, set its value to null.\n\nFields to extract:\n${schemaEntries}`;
+
+    const result: ProxySuccessResponse = {
+      ok: true,
+      tool: "novada_proxy_extract",
+      data: {
+        mode: "llm_extract",
+        url,
+        schema: schema as Record<string, unknown>,
+        content: truncated,
+        extraction_prompt: extractionPrompt,
+        content_length: truncated.length,
+        ...(fetchWarning ? { fetch_warning: fetchWarning } : {}),
+      },
+      meta: {
+        latency_ms,
+        country,
+        session_id,
+        content_density: density,
+        quota: {
+          credits_estimated: usedRender ? 5 : 1,
+          note: "Check dashboard.novada.com for real-time balance",
+        },
+      },
+    };
+
+    if (!result.meta.country) delete result.meta.country;
+    if (!result.meta.session_id) delete result.meta.session_id;
+
+    return JSON.stringify(result);
+  }
+
+  // ── Heuristic mode (default) ────────────────────────────────────────────────
   // Extract each requested field using pattern-based heuristics
   const extractedFields: Record<string, string | string[] | null> = {};
 
@@ -85,8 +131,9 @@ export async function agentproxyExtract(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_extract",
+    tool: "novada_proxy_extract",
     data: {
+      mode: "heuristic",
       url,
       fields: extractedFields as Record<string, unknown>,
       ...(fetchWarning ? { fetch_warning: fetchWarning } : {}),
@@ -382,6 +429,8 @@ function escapeRegex(s: string): string {
 
 // --- Validation ---
 
+const KEY_PATTERN = /^[a-zA-Z][a-zA-Z0-9_]*$/;
+
 export function validateExtractParams(raw: Record<string, unknown>): ExtractParams {
   if (!raw.url || typeof raw.url !== "string") {
     throw new Error("url is required and must be a string");
@@ -390,15 +439,46 @@ export function validateExtractParams(raw: Record<string, unknown>): ExtractPara
     throw new Error("url must start with http:// or https://");
   }
 
-  if (!raw.fields || !Array.isArray(raw.fields) || raw.fields.length === 0) {
-    throw new Error("fields is required — provide an array of field names to extract (e.g. [\"title\", \"price\", \"description\"])");
+  // Validate schema (takes precedence over fields)
+  let schema: Record<string, string> | undefined;
+  if (raw.schema !== undefined) {
+    if (typeof raw.schema !== "object" || raw.schema === null || Array.isArray(raw.schema)) {
+      throw new Error("schema must be an object with string keys and string values");
+    }
+    const schemaObj = raw.schema as Record<string, unknown>;
+    const keys = Object.keys(schemaObj);
+    if (keys.length === 0) {
+      throw new Error("schema must have at least 1 field");
+    }
+    if (keys.length > 20) {
+      throw new Error("schema must have at most 20 fields");
+    }
+    for (const [key, val] of Object.entries(schemaObj)) {
+      if (!KEY_PATTERN.test(key) || key.length > 50) {
+        throw new Error("schema keys must be alphanumeric/underscore, start with letter, max 50 chars");
+      }
+      if (typeof val !== "string" || val.trim().length === 0) {
+        throw new Error("schema values must be non-empty strings");
+      }
+      if (val.length > 200) {
+        throw new Error("schema value descriptions must be 200 characters or less");
+      }
+    }
+    schema = schemaObj as Record<string, string>;
   }
-  if (raw.fields.length > 20) {
-    throw new Error("fields must contain at most 20 field names");
-  }
-  for (const f of raw.fields) {
-    if (typeof f !== "string" || f.length > 50) {
-      throw new Error("each field must be a string of 50 characters or less");
+
+  // fields is required only when schema is not provided
+  if (!schema) {
+    if (!raw.fields || !Array.isArray(raw.fields) || raw.fields.length === 0) {
+      throw new Error("fields is required — provide an array of field names to extract (e.g. [\"title\", \"price\", \"description\"])");
+    }
+    if (raw.fields.length > 20) {
+      throw new Error("fields must contain at most 20 field names");
+    }
+    for (const f of raw.fields) {
+      if (typeof f !== "string" || f.length > 50) {
+        throw new Error("each field must be a string of 50 characters or less");
+      }
     }
   }
 
@@ -425,7 +505,8 @@ export function validateExtractParams(raw: Record<string, unknown>): ExtractPara
 
   return {
     url: raw.url,
-    fields: raw.fields as string[],
+    fields: (raw.fields as string[] | undefined) ?? [],
+    schema,
     country: raw.country as string | undefined,
     city: raw.city as string | undefined,
     session_id: raw.session_id as string | undefined,

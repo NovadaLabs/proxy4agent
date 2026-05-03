@@ -1,6 +1,6 @@
 {
   "name": "novada-proxy-mcp",
-  "version": "1.8.1",
+  "version": "1.8.2",
   "mcpName": "io.github.NovadaLabs/novada-proxy-mcp",
   "description": "Novada Proxy — residential proxy MCP server for AI agents. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, Google search. Multi-provider: Novada, BrightData, Smartproxy, Oxylabs.",
   "type": "module",

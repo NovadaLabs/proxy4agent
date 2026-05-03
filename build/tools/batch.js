@@ -1,6 +1,6 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import { SAFE_COUNTRY, SAFE_SESSION_ID, QUOTA_NOTE } from "../validation.js";
-export async function agentproxyBatchFetch(params, adapter, credentials) {
+export async function novadaProxyBatchFetch(params, adapter, credentials) {
     const { urls, country, session_id, format = "markdown", timeout = 60, concurrency = 3, } = params;
     const wallStart = Date.now();
     // Semaphore-based concurrency control
@@ -30,7 +30,7 @@ export async function agentproxyBatchFetch(params, adapter, credentials) {
         const start = Date.now();
         await acquire();
         try {
-            const rawResult = await agentproxyFetch({ url, country, session_id, format, timeout }, adapter, credentials);
+            const rawResult = await novadaProxyFetch({ url, country, session_id, format, timeout }, adapter, credentials);
             const parsed = JSON.parse(rawResult);
             const latency_ms = Date.now() - start;
             return {
@@ -89,7 +89,7 @@ export async function agentproxyBatchFetch(params, adapter, credentials) {
     const cachedCount = results.filter(r => r.ok && r.cache_hit).length;
     const result = {
         ok: true,
-        tool: "agentproxy_batch_fetch",
+        tool: "novada_proxy_batch_fetch",
         data: {
             requested: urls.length,
             succeeded,

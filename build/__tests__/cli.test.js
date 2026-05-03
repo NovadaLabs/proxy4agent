@@ -62,7 +62,7 @@ describe("CLI status", () => {
         const out = runCli(["status"]);
         const json = JSON.parse(out);
         expect(json.ok).toBe(true);
-        expect(json.tool).toBe("agentproxy_status");
+        expect(json.tool).toBe("novada_proxy_status");
     });
     it("status output includes data and meta fields", () => {
         const out = runCli(["status"]);

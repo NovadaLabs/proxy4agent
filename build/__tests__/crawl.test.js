@@ -1,11 +1,11 @@
 import { vi, describe, it, expect, beforeEach } from "vitest";
-import { validateCrawlParams, agentproxyCrawl } from "../tools/crawl.js";
+import { validateCrawlParams, novadaProxyCrawl } from "../tools/crawl.js";
 // ─── Mocks ────────────────────────────────────────────────────────────────────
-const { agentproxyFetchSpy } = vi.hoisted(() => ({
-    agentproxyFetchSpy: vi.fn(),
+const { novadaProxyFetchSpy } = vi.hoisted(() => ({
+    novadaProxyFetchSpy: vi.fn(),
 }));
 vi.mock("../tools/fetch.js", () => ({
-    agentproxyFetch: agentproxyFetchSpy,
+    novadaProxyFetch: novadaProxyFetchSpy,
 }));
 // ─── Test fixtures ────────────────────────────────────────────────────────────
 const mockAdapter = {
@@ -91,11 +91,11 @@ describe("validateCrawlParams", () => {
         expect(p.format).toBe("raw");
     });
 });
-// ─── agentproxyCrawl integration ─────────────────────────────────────────────
+// ─── novadaProxyCrawl integration ─────────────────────────────────────────────
 function makeFetchResponse(url, html, statusCode = 200, cacheHit = false) {
     return JSON.stringify({
         ok: true,
-        tool: "agentproxy_fetch",
+        tool: "novada_proxy_fetch",
         data: {
             url,
             status_code: statusCode,
@@ -109,27 +109,27 @@ function makeFetchResponse(url, html, statusCode = 200, cacheHit = false) {
         },
     });
 }
-describe("agentproxyCrawl", () => {
+describe("novadaProxyCrawl", () => {
     beforeEach(() => {
-        agentproxyFetchSpy.mockReset();
+        novadaProxyFetchSpy.mockReset();
     });
     it("returns valid JSON with correct tool name", async () => {
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.ok).toBe(true);
-        expect(result.tool).toBe("agentproxy_crawl");
+        expect(result.tool).toBe("novada_proxy_crawl");
     });
     it("includes start_url and domain in data", async () => {
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.data.start_url).toBe("https://example.com");
         expect(result.data.domain).toBe("example.com");
     });
     it("crawls at least the start URL", async () => {
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>No links</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>No links</body></html>"));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.data.urls_crawled).toBe(1);
         expect(result.data.pages).toHaveLength(1);
@@ -142,11 +142,11 @@ describe("agentproxyCrawl", () => {
       <a href="/page1">Page 1</a>
       <a href="/page2">Page 2</a>
     </body></html>`;
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", rootHtml))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/page1", "<html><body>Page 1</body></html>"))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/page2", "<html><body>Page 2</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.data.urls_crawled).toBe(3);
         expect(result.data.depth_reached).toBe(1);
@@ -156,10 +156,10 @@ describe("agentproxyCrawl", () => {
       <a href="https://external.com/page">External</a>
       <a href="/internal">Internal</a>
     </body></html>`;
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", rootHtml))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/internal", "<html><body>Internal</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         // Only example.com and /internal crawled — external.com excluded
         expect(result.data.urls_crawled).toBe(2);
@@ -168,8 +168,8 @@ describe("agentproxyCrawl", () => {
         // Root page with many links, limit=1 means only root is crawled
         const manyLinksHtml = Array.from({ length: 20 }, (_, i) => `<a href="/page${i}">Page ${i}</a>`).join("\n");
         const rootHtml = `<html><body>${manyLinksHtml}</body></html>`;
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 2, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 2, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.data.urls_crawled).toBeLessThanOrEqual(10);
     });
@@ -178,11 +178,11 @@ describe("agentproxyCrawl", () => {
       <a href="/good">Good</a>
       <a href="/bad">Bad</a>
     </body></html>`;
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", rootHtml))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/good", "<html><body>Good</body></html>"))
             .mockRejectedValueOnce(new Error("Network error"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.ok).toBe(true);
         expect(result.data.urls_crawled).toBe(3);
@@ -194,44 +194,44 @@ describe("agentproxyCrawl", () => {
         // Both sub-pages link back to root
         const rootHtml = `<html><body><a href="/sub">Sub</a></body></html>`;
         const subHtml = `<html><body><a href="/">Back to root</a></body></html>`;
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", rootHtml))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/sub", subHtml));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 2, limit: 10 }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 2, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         // Root should only be visited once despite sub linking back
         expect(result.data.urls_crawled).toBe(2);
-        // agentproxyFetch called exactly twice
-        expect(agentproxyFetchSpy).toHaveBeenCalledTimes(2);
+        // novadaProxyFetch called exactly twice
+        expect(novadaProxyFetchSpy).toHaveBeenCalledTimes(2);
     });
     it("includes content when include_content is true", async () => {
         const html = "<html><body>Page content here</body></html>";
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", html));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10, include_content: true, format: "raw" }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", html));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10, include_content: true, format: "raw" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         const page = result.data.pages[0];
         expect(page.content).toBeDefined();
     });
     it("includes sitemap_hint when sitemap not crawled", async () => {
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>No links</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>No links</body></html>"));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.data.sitemap_hint).toContain("sitemap.xml");
     });
     it("includes latency_ms in meta", async () => {
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>"));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(typeof result.meta.latency_ms).toBe("number");
         expect(result.meta.latency_ms).toBeGreaterThanOrEqual(0);
     });
     it("throws for an invalid start URL", async () => {
-        await expect(agentproxyCrawl({ url: "not-a-url", depth: 1, limit: 10 }, mockAdapter, mockCreds)).rejects.toThrow("Invalid URL");
+        await expect(novadaProxyCrawl({ url: "not-a-url", depth: 1, limit: 10 }, mockAdapter, mockCreds)).rejects.toThrow("Invalid URL");
     });
     it("counts credits as pages minus cache hits", async () => {
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", "<html><body>Hello</body></html>", 200, false));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.meta.quota.credits_estimated).toBe(1); // 1 page, 0 cache hits
     });
@@ -241,8 +241,8 @@ describe("agentproxyCrawl", () => {
       <a href="/page1">Page 1</a>
       <a href="/page2">Page 2</a>
     </body></html>`;
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         const page = result.data.pages[0];
         // After F2's fix: field is new_links, not links_found
@@ -259,8 +259,8 @@ describe("agentproxyCrawl", () => {
       <a href="/page1">Page 1 again</a>
       <a href="https://external.com">External</a>
     </body></html>`;
-        agentproxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
+        novadaProxyFetchSpy.mockResolvedValue(makeFetchResponse("https://example.com", rootHtml));
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10 }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         const page = result.data.pages[0];
         // total_links counts all internal links on the page (deduplicated within page)
@@ -281,12 +281,12 @@ describe("agentproxyCrawl", () => {
         // Second call: raw fetch for root (link extraction)
         // Third call: markdown fetch for /page1
         // Fourth call: raw fetch for /page1 (link extraction)
-        agentproxyFetchSpy
+        novadaProxyFetchSpy
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", "# Root", 200, false))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com", rootHtml, 200, false))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/page1", "# Page 1", 200, false))
             .mockResolvedValueOnce(makeFetchResponse("https://example.com/page1", "<html><body>Page 1</body></html>", 200, false));
-        const raw = await agentproxyCrawl({ url: "https://example.com", depth: 1, limit: 10, include_content: true, format: "markdown" }, mockAdapter, mockCreds);
+        const raw = await novadaProxyCrawl({ url: "https://example.com", depth: 1, limit: 10, include_content: true, format: "markdown" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         // 2 pages, 0 cache hits, 2 extra raw fetches = 2 - 0 + 2 = 4 credits
         expect(result.meta.quota.credits_estimated).toBe(4);

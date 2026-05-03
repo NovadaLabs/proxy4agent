@@ -25,6 +25,7 @@ export interface ProxySuccessResponse {
     session_id?: string;
     session_verified?: boolean;
     truncated?: boolean;
+    content_density?: number;
     concurrency?: number;
     quota?: QuotaMeta;
     cache_hit?: boolean;        // true = served from in-process cache, false = live fetch

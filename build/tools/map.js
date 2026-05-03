@@ -1,4 +1,4 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import { SAFE_COUNTRY, QUOTA_NOTE } from "../validation.js";
 /**
  * Crawl a URL and return all internal links found on the page (and optionally
@@ -6,10 +6,10 @@ import { SAFE_COUNTRY, QUOTA_NOTE } from "../validation.js";
  * extracts all <a href> links, normalises them to absolute URLs, filters to the
  * same domain, and returns the list.
  *
- * For a full sitemap crawl, agents should call agentproxy_map iteratively on
+ * For a full sitemap crawl, agents should call novada_proxy_map iteratively on
  * the discovered URLs or use the sitemap.xml directly.
  */
-export async function agentproxyMap(params, adapter, credentials) {
+export async function novadaProxyMap(params, adapter, credentials) {
     const { url, limit = 50, include_external = false, country, timeout = 60 } = params;
     const startTime = Date.now();
     // Parse origin for relative-URL resolution and same-domain filtering
@@ -24,7 +24,7 @@ export async function agentproxyMap(params, adapter, credentials) {
         throw new Error(`Invalid URL: ${url}`);
     }
     // Fetch the starting page
-    const fetchResultStr = await agentproxyFetch({ url, format: "raw", country, timeout }, adapter, credentials);
+    const fetchResultStr = await novadaProxyFetch({ url, format: "raw", country, timeout }, adapter, credentials);
     let html;
     try {
         const fetchResult = JSON.parse(fetchResultStr);
@@ -79,7 +79,7 @@ export async function agentproxyMap(params, adapter, credentials) {
     const latency_ms = Date.now() - startTime;
     const result = {
         ok: true,
-        tool: "agentproxy_map",
+        tool: "novada_proxy_map",
         data: {
             source_url: url,
             domain: hostname,

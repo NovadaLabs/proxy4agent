@@ -8,11 +8,11 @@ Worker 3 (SKILL):  skill/SKILL.md (NEW)          → no conflict
 Integration:       src/index.ts, src/tools/index.ts, package.json → orchestrator only
 ```
 
-## Worker 1 — agentproxy_crawl
+## Worker 1 — novada_proxy_crawl
 
 **File:** `src/tools/crawl.ts` (NEW)
-**Prompt summary:** BFS recursive crawl, depth 1-5, limit 10-200, include_content option, reuse agentproxyFetch, same-domain filtering, resource URL filtering, cache-aware credit tracking.
-**Result:** Completed. Exports: agentproxyCrawl, validateCrawlParams, CrawlParams, CrawlPageResult.
+**Prompt summary:** BFS recursive crawl, depth 1-5, limit 10-200, include_content option, reuse novadaProxyFetch, same-domain filtering, resource URL filtering, cache-aware credit tracking.
+**Result:** Completed. Exports: novadaProxyCrawl, validateCrawlParams, CrawlParams, CrawlPageResult.
 
 ## Worker 2 — CLI
 

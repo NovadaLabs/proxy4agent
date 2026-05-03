@@ -33,7 +33,7 @@ NOVADA_PROXY_USER="tongwu_TRDI7X" NOVADA_PROXY_PASS="***" NOVADA_PROXY_HOST="1b9
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,
@@ -66,7 +66,7 @@ NOVADA_PROXY_USER="tongwu_TRDI7X" NOVADA_PROXY_PASS="***" NOVADA_PROXY_HOST="1b9
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,
@@ -94,7 +94,7 @@ NOVADA_PROXY_USER="tongwu_TRDI7X" NOVADA_PROXY_PASS="***" NOVADA_PROXY_HOST="1b9
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,

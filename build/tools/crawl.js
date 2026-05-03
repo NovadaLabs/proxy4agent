@@ -1,4 +1,4 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import { SAFE_COUNTRY, QUOTA_NOTE } from "../validation.js";
 // ─── Link extraction (reused from map.ts pattern) ──────────────────────────────
 /**
@@ -93,7 +93,7 @@ async function mapWithConcurrency(items, concurrency, fn) {
 }
 // ─── Main crawl function ───────────────────────────────────────────────────────
 const CRAWL_CONCURRENCY = 3;
-export async function agentproxyCrawl(params, adapter, credentials) {
+export async function novadaProxyCrawl(params, adapter, credentials) {
     const { url, depth: maxDepth = 2, limit = 50, include_content = false, country, timeout = 60, format = "markdown", } = params;
     const startTime = Date.now();
     // Parse origin for relative-URL resolution and same-domain filtering
@@ -121,14 +121,14 @@ export async function agentproxyCrawl(params, adapter, credentials) {
         const batch = currentLevel.slice(0, remaining);
         const batchResults = await mapWithConcurrency(batch, CRAWL_CONCURRENCY, async (item) => {
             try {
-                const fetchResultStr = await agentproxyFetch({ url: item.url, format: include_content ? format : "raw", country, timeout }, adapter, credentials);
+                const fetchResultStr = await novadaProxyFetch({ url: item.url, format: include_content ? format : "raw", country, timeout }, adapter, credentials);
                 const fetchResult = JSON.parse(fetchResultStr);
                 const html = fetchResult.data.content || "";
                 const statusCode = fetchResult.data.status_code;
                 const cacheHit = fetchResult.meta.cache_hit === true;
                 // Extract links from raw HTML for link discovery
                 // When include_content=true and format=markdown, we still need raw HTML for links.
-                // But agentproxyFetch already converts to markdown. For link extraction we use
+                // But novadaProxyFetch already converts to markdown. For link extraction we use
                 // the fetched content as-is — markdown conversion preserves link text but strips
                 // <a> tags. So we always fetch raw for link extraction, and optionally return
                 // markdown content.
@@ -138,7 +138,7 @@ export async function agentproxyCrawl(params, adapter, credentials) {
                     // We fetched as markdown for the user's content, but we need raw HTML for links.
                     // Cache key is url|format|country, so url|markdown|country and url|raw|country
                     // are DIFFERENT keys — the raw fetch costs a separate credit.
-                    const rawResultStr = await agentproxyFetch({ url: item.url, format: "raw", country, timeout }, adapter, credentials);
+                    const rawResultStr = await novadaProxyFetch({ url: item.url, format: "raw", country, timeout }, adapter, credentials);
                     const rawResult = JSON.parse(rawResultStr);
                     linksHtml = rawResult.data.content || "";
                     contentForUser = html; // markdown version
@@ -206,7 +206,7 @@ export async function agentproxyCrawl(params, adapter, credentials) {
         : undefined;
     const result = {
         ok: true,
-        tool: "agentproxy_crawl",
+        tool: "novada_proxy_crawl",
         data: {
             start_url: url,
             domain: hostname,

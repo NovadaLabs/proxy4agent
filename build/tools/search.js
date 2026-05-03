@@ -2,7 +2,7 @@ import axios from "axios";
 import { NOVADA_SEARCH_URL, DEFAULT_USER_AGENT } from "../config.js";
 import { QUOTA_NOTE } from "../validation.js";
 const SAFE_LOCALE = /^[a-zA-Z0-9_-]{1,10}$/;
-export async function agentproxySearch(params, novadaApiKey) {
+export async function novadaProxySearch(params, novadaApiKey) {
     const { query, engine = "google", num = 10, country = "", language = "" } = params;
     // Guard: validate locale params even when called directly (not via validateSearchParams)
     if (country && !SAFE_LOCALE.test(country))
@@ -61,7 +61,7 @@ export async function agentproxySearch(params, novadaApiKey) {
     }));
     const result = {
         ok: true,
-        tool: "agentproxy_search",
+        tool: "novada_proxy_search",
         data: {
             query,
             engine,

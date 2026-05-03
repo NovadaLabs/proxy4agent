@@ -2,6 +2,7 @@ import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 export interface ExtractParams {
     url: string;
     fields: string[];
+    schema?: Record<string, string>;
     country?: string;
     city?: string;
     session_id?: string;
@@ -9,7 +10,7 @@ export interface ExtractParams {
     render_fallback?: boolean;
 }
 export declare function shouldEscalateToRender(msg: string): boolean;
-export declare function agentproxyExtract(params: ExtractParams, adapter: ProxyAdapter, credentials: ProxyCredentials, browserWsEndpoint?: string): Promise<string>;
+export declare function novadaProxyExtract(params: ExtractParams, adapter: ProxyAdapter, credentials: ProxyCredentials, browserWsEndpoint?: string): Promise<string>;
 /**
  * Heuristic field extraction from HTML.
  *

@@ -3,7 +3,7 @@ import { HttpsProxyAgent } from "https-proxy-agent";
 import { HttpProxyAgent } from "http-proxy-agent";
 import { gunzipSync, brotliDecompressSync, inflateSync } from "zlib";
 import { DEFAULT_USER_AGENT } from "../config.js";
-import { htmlToMarkdown, unicodeSafeTruncate } from "../utils.js";
+import { htmlToMarkdown, unicodeSafeTruncate, countHtmlTags, contentDensity } from "../utils.js";
 import { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID, QUOTA_NOTE } from "../validation.js";
 // ─── In-process response cache ───────────────────────────────────────────────
 // Eliminates duplicate proxy credits when agents re-fetch the same URL.
@@ -59,7 +59,7 @@ function decompress(buffer, encoding) {
     // Deflate starts with various bytes (0x78 0x01/9C/DA common) but not reliable — skip probe
     return buffer.toString("utf-8");
 }
-export async function agentproxyFetch(params, adapter, credentials) {
+export async function novadaProxyFetch(params, adapter, credentials) {
     const { url, format = "markdown", timeout = 60 } = params;
     if (!url.startsWith("http://") && !url.startsWith("https://")) {
         throw new Error("URL must start with http:// or https://");
@@ -135,9 +135,14 @@ export async function agentproxyFetch(params, adapter, credentials) {
             const finalOutput = truncated
                 ? unicodeSafeTruncate(output, 100_000) + "\n\n[... truncated — page is large]"
                 : output;
+            // Compute content density: ratio of useful text to tag overhead
+            const tagCount = isHtml ? countHtmlTags(bodyForConversion) : 0;
+            const content_density = isHtml
+                ? contentDensity(finalOutput.length, tagCount)
+                : 1.0;
             const result = {
                 ok: true,
-                tool: "agentproxy_fetch",
+                tool: "novada_proxy_fetch",
                 data: {
                     url,
                     status_code: response.status,
@@ -151,6 +156,7 @@ export async function agentproxyFetch(params, adapter, credentials) {
                     country: params.country,
                     session_id: params.session_id,
                     truncated,
+                    content_density,
                     quota: { credits_estimated: 1, note: QUOTA_NOTE },
                     cache_hit: false,
                 },

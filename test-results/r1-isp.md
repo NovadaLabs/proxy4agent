@@ -28,7 +28,7 @@
     "code": "UNKNOWN_ERROR",
     "message": "Novada search error (402): Api Key error：User has no permission",
     "recoverable": true,
-    "agent_instruction": "Retry the request. Check agentproxy_status for network health."
+    "agent_instruction": "Retry the request. Check novada_proxy_status for network health."
   }
 }
 ```
@@ -38,7 +38,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_batch_fetch",
+  "tool": "novada_proxy_batch_fetch",
   "data": {
     "requested": 4,
     "succeeded": 4,
@@ -97,7 +97,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_session",
+  "tool": "novada_proxy_session",
   "data": {
     "url": "https://httpbin.org/ip",
     "status_code": 200,
@@ -123,7 +123,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_fetch",
+  "tool": "novada_proxy_fetch",
   "data": {
     "url": "https://github.com/NovadaLabs",
     "status_code": 200,
@@ -147,7 +147,7 @@
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_extract",
+  "tool": "novada_proxy_extract",
   "data": {
     "url": "https://www.bbc.com/news",
     "fields": {
@@ -173,4 +173,4 @@
 
 1. **T1 - Search permission:** Error code should be `PERMISSION_DENIED` or `AUTH_ERROR` instead of `UNKNOWN_ERROR` for a 402 status. The `agent_instruction` says "Retry the request" which is misleading for a permission error -- retrying won't help.
 
-2. **T5 - Extract shallow:** `image` and `links` fields are empty because BBC News renders content via JavaScript. The `extracted_via: "proxy_fetch"` path only parses static HTML. Consider falling back to `agentproxy_render` or documenting this limitation.
+2. **T5 - Extract shallow:** `image` and `links` fields are empty because BBC News renders content via JavaScript. The `extracted_via: "proxy_fetch"` path only parses static HTML. Consider falling back to `novada_proxy_render` or documenting this limitation.

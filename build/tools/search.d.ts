@@ -5,5 +5,5 @@ export interface SearchParams {
     country?: string;
     language?: string;
 }
-export declare function agentproxySearch(params: SearchParams, novadaApiKey: string): Promise<string>;
+export declare function novadaProxySearch(params: SearchParams, novadaApiKey: string): Promise<string>;
 export declare function validateSearchParams(raw: Record<string, unknown>): SearchParams;

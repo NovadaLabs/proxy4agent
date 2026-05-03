@@ -1,8 +1,8 @@
 // QA test harness — runs all 10 test cases against real proxy credentials
-import { agentproxyFetch, validateFetchParams } from "./build/tools/fetch.js";
-import { agentproxySearch, validateSearchParams } from "./build/tools/search.js";
-import { agentproxySession, validateSessionParams } from "./build/tools/session.js";
-import { agentproxyStatus } from "./build/tools/status.js";
+import { novadaProxyFetch, validateFetchParams } from "./build/tools/fetch.js";
+import { novadaProxySearch, validateSearchParams } from "./build/tools/search.js";
+import { novadaProxySession, validateSessionParams } from "./build/tools/session.js";
+import { novadaProxyStatus } from "./build/tools/status.js";
 
 const PROXY_USER = process.env.NOVADA_PROXY_USER;
 const PROXY_PASS = process.env.NOVADA_PROXY_PASS;
@@ -34,8 +34,8 @@ async function runTest(name, fn) {
 }
 
 // ── Test 1: Basic fetch — raw IP ──────────────────────────────────────────────
-await runTest("T1: agentproxy_fetch basic (httpbin.org/ip, raw)", async () => {
-  const out = await agentproxyFetch(
+await runTest("T1: novada_proxy_fetch basic (httpbin.org/ip, raw)", async () => {
+  const out = await novadaProxyFetch(
     validateFetchParams({ url: "https://httpbin.org/ip", format: "raw" }),
     PROXY_USER, PROXY_PASS
   );
@@ -53,8 +53,8 @@ await runTest("T1: agentproxy_fetch basic (httpbin.org/ip, raw)", async () => {
 });
 
 // ── Test 2: Country targeting (DE) ───────────────────────────────────────────
-await runTest("T2: agentproxy_fetch country=DE", async () => {
-  const out = await agentproxyFetch(
+await runTest("T2: novada_proxy_fetch country=DE", async () => {
+  const out = await novadaProxyFetch(
     validateFetchParams({ url: "https://httpbin.org/ip", format: "raw", country: "DE" }),
     PROXY_USER, PROXY_PASS
   );
@@ -72,8 +72,8 @@ await runTest("T2: agentproxy_fetch country=DE", async () => {
 });
 
 // ── Test 3: Markdown conversion ───────────────────────────────────────────────
-await runTest("T3: agentproxy_fetch markdown (example.com)", async () => {
-  const out = await agentproxyFetch(
+await runTest("T3: novada_proxy_fetch markdown (example.com)", async () => {
+  const out = await novadaProxyFetch(
     validateFetchParams({ url: "https://example.com", format: "markdown" }),
     PROXY_USER, PROXY_PASS
   );
@@ -90,8 +90,8 @@ await runTest("T3: agentproxy_fetch markdown (example.com)", async () => {
 });
 
 // ── Test 4: Anti-bot (Amazon) ─────────────────────────────────────────────────
-await runTest("T4: agentproxy_fetch Amazon anti-bot", async () => {
-  const out = await agentproxyFetch(
+await runTest("T4: novada_proxy_fetch Amazon anti-bot", async () => {
+  const out = await novadaProxyFetch(
     validateFetchParams({ url: "https://www.amazon.com/dp/B0BSHF7WHW", country: "US", format: "markdown", timeout: 60 }),
     PROXY_USER, PROXY_PASS
   );
@@ -111,16 +111,16 @@ await runTest("T4: agentproxy_fetch Amazon anti-bot", async () => {
 });
 
 // ── Test 5: Session stickiness ────────────────────────────────────────────────
-await runTest("T5: agentproxy_session sticky IP", async () => {
-  const s1a = await agentproxySession(
+await runTest("T5: novada_proxy_session sticky IP", async () => {
+  const s1a = await novadaProxySession(
     validateSessionParams({ session_id: "testqa001", url: "https://httpbin.org/ip" }),
     PROXY_USER, PROXY_PASS
   );
-  const s1b = await agentproxySession(
+  const s1b = await novadaProxySession(
     validateSessionParams({ session_id: "testqa001", url: "https://httpbin.org/ip" }),
     PROXY_USER, PROXY_PASS
   );
-  const s2 = await agentproxySession(
+  const s2 = await novadaProxySession(
     validateSessionParams({ session_id: "testqa002", url: "https://httpbin.org/ip" }),
     PROXY_USER, PROXY_PASS
   );
@@ -164,8 +164,8 @@ await runTest("T6: session_id hyphen guard", async () => {
 });
 
 // ── Test 7: Search — Google ───────────────────────────────────────────────────
-await runTest("T7: agentproxy_search Google", async () => {
-  const out = await agentproxySearch(
+await runTest("T7: novada_proxy_search Google", async () => {
+  const out = await novadaProxySearch(
     validateSearchParams({ query: "residential proxy API 2025", engine: "google", num: 5 }),
     NOVADA_API_KEY
   );
@@ -179,8 +179,8 @@ await runTest("T7: agentproxy_search Google", async () => {
 });
 
 // ── Test 8: Search — Bing ─────────────────────────────────────────────────────
-await runTest("T8: agentproxy_search Bing", async () => {
-  const out = await agentproxySearch(
+await runTest("T8: novada_proxy_search Bing", async () => {
+  const out = await novadaProxySearch(
     validateSearchParams({ query: "Novada proxy", engine: "bing", num: 3 }),
     NOVADA_API_KEY
   );
@@ -193,8 +193,8 @@ await runTest("T8: agentproxy_search Bing", async () => {
 });
 
 // ── Test 9: Status ─────────────────────────────────────────────────────────────
-await runTest("T9: agentproxy_status", async () => {
-  const out = await agentproxyStatus();
+await runTest("T9: novada_proxy_status", async () => {
+  const out = await novadaProxyStatus();
   const hasStatus = out.includes("Status:");
   const nodeMatch = out.match(/Connected nodes:\s*([\d,]+)/);
   const nodeCount = nodeMatch ? parseInt(nodeMatch[1].replace(/,/g, "")) : 0;

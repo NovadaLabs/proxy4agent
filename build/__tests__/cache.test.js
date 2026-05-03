@@ -1,5 +1,5 @@
 import { vi, describe, it, expect, beforeEach, afterEach } from "vitest";
-import { getCacheTtl, makeCacheKey, clearResponseCache, agentproxyFetch } from "../tools/fetch.js";
+import { getCacheTtl, makeCacheKey, clearResponseCache, novadaProxyFetch } from "../tools/fetch.js";
 // ─── Mocks ───────────────────────────────────────────────────────────────────
 const { axiosGetSpy } = vi.hoisted(() => ({
     axiosGetSpy: vi.fn(),
@@ -120,8 +120,8 @@ describe("clearResponseCache", () => {
         expect(() => clearResponseCache()).not.toThrow();
     });
 });
-// ─── agentproxyFetch cache behavior ──────────────────────────────────────────
-describe("agentproxyFetch cache behavior", () => {
+// ─── novadaProxyFetch cache behavior ──────────────────────────────────────────
+describe("novadaProxyFetch cache behavior", () => {
     const OLD_TTL = process.env.PROXY4AGENT_CACHE_TTL_SECONDS;
     beforeEach(() => {
         clearResponseCache();
@@ -138,16 +138,16 @@ describe("agentproxyFetch cache behavior", () => {
     });
     it("should return cache_hit:false on first fetch", async () => {
         mockAxiosSuccess();
-        const raw = await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        const raw = await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.ok).toBe(true);
         expect(result.meta.cache_hit).toBe(false);
     });
     it("should return cache_hit:true on second fetch of same URL+format+country", async () => {
         mockAxiosSuccess();
-        await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
         // Second call — should NOT call axios.get again
-        const raw2 = await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        const raw2 = await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
         const result2 = JSON.parse(raw2);
         expect(result2.meta.cache_hit).toBe(true);
         expect(typeof result2.meta.cache_age_seconds).toBe("number");
@@ -157,8 +157,8 @@ describe("agentproxyFetch cache behavior", () => {
     it("should NOT cache when session_id is present", async () => {
         mockAxiosSuccess();
         mockAxiosSuccess();
-        await agentproxyFetch({ url: "https://example.com", session_id: "abc123" }, mockAdapter, mockCreds);
-        const raw2 = await agentproxyFetch({ url: "https://example.com", session_id: "abc123" }, mockAdapter, mockCreds);
+        await novadaProxyFetch({ url: "https://example.com", session_id: "abc123" }, mockAdapter, mockCreds);
+        const raw2 = await novadaProxyFetch({ url: "https://example.com", session_id: "abc123" }, mockAdapter, mockCreds);
         const result2 = JSON.parse(raw2);
         expect(result2.meta.cache_hit).toBe(false);
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
@@ -167,8 +167,8 @@ describe("agentproxyFetch cache behavior", () => {
         process.env.PROXY4AGENT_CACHE_TTL_SECONDS = "0";
         mockAxiosSuccess();
         mockAxiosSuccess();
-        await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
-        const raw2 = await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        const raw2 = await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
         const result2 = JSON.parse(raw2);
         expect(result2.meta.cache_hit).toBe(false);
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
@@ -176,23 +176,23 @@ describe("agentproxyFetch cache behavior", () => {
     it("should serve independent entries for different countries", async () => {
         mockAxiosSuccess("<html><body>US content</body></html>");
         mockAxiosSuccess("<html><body>DE content</body></html>");
-        const rawUS = await agentproxyFetch({ url: "https://example.com", country: "US" }, mockAdapter, mockCreds);
-        const rawDE = await agentproxyFetch({ url: "https://example.com", country: "DE" }, mockAdapter, mockCreds);
+        const rawUS = await novadaProxyFetch({ url: "https://example.com", country: "US" }, mockAdapter, mockCreds);
+        const rawDE = await novadaProxyFetch({ url: "https://example.com", country: "DE" }, mockAdapter, mockCreds);
         const resultUS = JSON.parse(rawUS);
         const resultDE = JSON.parse(rawDE);
         expect(resultUS.meta.cache_hit).toBe(false);
         expect(resultDE.meta.cache_hit).toBe(false);
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
         // Now fetch US again — should be cached
-        const rawUS2 = await agentproxyFetch({ url: "https://example.com", country: "US" }, mockAdapter, mockCreds);
+        const rawUS2 = await novadaProxyFetch({ url: "https://example.com", country: "US" }, mockAdapter, mockCreds);
         const resultUS2 = JSON.parse(rawUS2);
         expect(resultUS2.meta.cache_hit).toBe(true);
     });
     it("should serve independent entries for different formats", async () => {
         mockAxiosSuccess("<html><body>Hello</body></html>");
         mockAxiosSuccess("<html><body>Hello</body></html>");
-        const rawMd = await agentproxyFetch({ url: "https://example.com", format: "markdown" }, mockAdapter, mockCreds);
-        const rawRaw = await agentproxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
+        const rawMd = await novadaProxyFetch({ url: "https://example.com", format: "markdown" }, mockAdapter, mockCreds);
+        const rawRaw = await novadaProxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
         const resultMd = JSON.parse(rawMd);
         const resultRaw = JSON.parse(rawRaw);
         expect(resultMd.meta.cache_hit).toBe(false);
@@ -200,8 +200,8 @@ describe("agentproxyFetch cache behavior", () => {
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
     });
 });
-// ─── agentproxyFetch retry logic ─────────────────────────────────────────────
-describe("agentproxyFetch retry logic", () => {
+// ─── novadaProxyFetch retry logic ─────────────────────────────────────────────
+describe("novadaProxyFetch retry logic", () => {
     beforeEach(() => {
         clearResponseCache();
         delete process.env.PROXY4AGENT_CACHE_TTL_SECONDS;
@@ -210,7 +210,7 @@ describe("agentproxyFetch retry logic", () => {
     it("should retry once on 5xx and succeed on second attempt", async () => {
         mockAxiosError(502);
         mockAxiosSuccess();
-        const raw = await agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
+        const raw = await novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.ok).toBe(true);
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
@@ -221,23 +221,23 @@ describe("agentproxyFetch retry logic", () => {
         // The key behavior: the function THROWS (does not return success).
         mockAxiosError(404);
         mockAxiosError(404);
-        await expect(agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow("Request failed with status 404");
+        await expect(novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow("Request failed with status 404");
     });
     it("should throw immediately on 429 (rate limited)", async () => {
         mockAxiosError(429);
-        await expect(agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow("Rate limited");
+        await expect(novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow("Rate limited");
         // 429 throws on the first attempt — no retry
         expect(axiosGetSpy).toHaveBeenCalledTimes(1);
     });
     it("should throw after 2 consecutive 5xx failures", async () => {
         mockAxiosError(503);
         mockAxiosError(503);
-        await expect(agentproxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow();
+        await expect(novadaProxyFetch({ url: "https://example.com" }, mockAdapter, mockCreds)).rejects.toThrow();
         expect(axiosGetSpy).toHaveBeenCalledTimes(2);
     });
 });
-// ─── agentproxyFetch truncation ──────────────────────────────────────────────
-describe("agentproxyFetch truncation", () => {
+// ─── novadaProxyFetch truncation ──────────────────────────────────────────────
+describe("novadaProxyFetch truncation", () => {
     beforeEach(() => {
         clearResponseCache();
         delete process.env.PROXY4AGENT_CACHE_TTL_SECONDS;
@@ -246,7 +246,7 @@ describe("agentproxyFetch truncation", () => {
     it("should truncate output over 100K chars and set truncated:true", async () => {
         const largeBody = "x".repeat(150_000);
         mockAxiosSuccess(largeBody, { "content-type": "text/plain" });
-        const raw = await agentproxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
+        const raw = await novadaProxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.meta.truncated).toBe(true);
         const content = result.data.content;
@@ -256,7 +256,7 @@ describe("agentproxyFetch truncation", () => {
     it("should not truncate output under 100K chars", async () => {
         const smallBody = "Hello world";
         mockAxiosSuccess(smallBody, { "content-type": "text/plain" });
-        const raw = await agentproxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
+        const raw = await novadaProxyFetch({ url: "https://example.com", format: "raw" }, mockAdapter, mockCreds);
         const result = JSON.parse(raw);
         expect(result.meta.truncated).toBe(false);
         expect(result.data.content).not.toContain("[... truncated");

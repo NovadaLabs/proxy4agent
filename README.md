@@ -15,10 +15,10 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 </p>
 
 <p align="center">
-  <img src="https://img.shields.io/badge/tools-9-orange?style=flat-square" alt="9 tools">
+  <img src="https://img.shields.io/badge/tools-10-orange?style=flat-square" alt="10 tools">
   <img src="https://img.shields.io/badge/prompts-5-blue?style=flat-square" alt="5 prompts">
   <img src="https://img.shields.io/badge/resources-5-green?style=flat-square" alt="5 resources">
-  <img src="https://img.shields.io/badge/tests-307-brightgreen?style=flat-square" alt="307 tests">
+  <img src="https://img.shields.io/badge/tests-430-brightgreen?style=flat-square" alt="430 tests">
   <img src="https://img.shields.io/badge/providers-5-purple?style=flat-square" alt="5 providers">
 </p>
 
@@ -37,7 +37,7 @@ Route any HTTP request through 2M+ real home devices — Android phones, Windows
 <p align="center">
   <a href="#why-novada-proxy">Why</a> &middot;
   <a href="#quick-install">Install</a> &middot;
-  <a href="#9-tools-at-a-glance">Tools</a> &middot;
+  <a href="#10-tools-at-a-glance">Tools</a> &middot;
   <a href="#5-prompts">Prompts</a> &middot;
   <a href="#5-resources">Resources</a> &middot;
   <a href="#providers">Providers</a> &middot;
@@ -82,7 +82,7 @@ npx novada-proxy fetch https://example.com
 ### For Agents
 
 > [!NOTE]
-> **Agents:** Tell your human to complete steps 1-2 above. Once credentials are set as environment variables, all 9 tools are available immediately. No API key rotation, no token refresh — proxy credentials are persistent.
+> **Agents:** Tell your human to complete steps 1-2 above. Once credentials are set as environment variables, all 10 tools are available immediately. No API key rotation, no token refresh — proxy credentials are persistent.
 
 ```
 Required env vars:
@@ -90,8 +90,8 @@ Required env vars:
   NOVADA_PROXY_PASS   — from novada.com dashboard
 
 Optional (for extra features):
-  NOVADA_API_KEY      — enables agentproxy_search (Google search)
-  NOVADA_BROWSER_WS   — enables agentproxy_render (JS rendering)
+  NOVADA_API_KEY      — enables novada_proxy_search (Google search)
+  NOVADA_BROWSER_WS   — enables novada_proxy_render (JS rendering)
   NOVADA_PROXY_ZONE   — "res" (default), "isp", or "dcp"
 ```
 
@@ -107,49 +107,69 @@ AI agents get blocked on 60–70% of commercial websites. Standard HTTP requests
 |---------|----------|
 | Amazon, LinkedIn, Cloudflare block your agent | 2M+ residential IPs from real home devices |
 | Bot challenges return 403 / CAPTCHA | Real device fingerprints bypass detection |
-| JS-rendered pages return blank content | `agentproxy_render` runs real Chromium |
+| JS-rendered pages return blank content | `novada_proxy_render` runs real Chromium |
 | Geo-restricted or localized content | 195+ countries, city-level targeting |
 | Multi-step workflows need the same IP | Sticky sessions — consistent IP across calls |
-| Scraping 10+ URLs wastes time | `agentproxy_batch_fetch` — concurrent, parallel |
-| Need structured fields, not raw HTML | `agentproxy_extract` — title, price, rating, etc. |
-| Finding URLs before scraping | `agentproxy_map` — discover all internal links |
-| Need clean search results | `agentproxy_search` — Google results as JSON |
+| Scraping 10+ URLs wastes time | `novada_proxy_batch_fetch` — concurrent, parallel |
+| Need structured fields, not raw HTML | `novada_proxy_extract` — title, price, rating, etc. |
+| Finding URLs before scraping | `novada_proxy_map` — discover all internal links |
+| Need clean search results | `novada_proxy_search` — Google results as JSON |
 
 ---
 
-## 9 Tools at a Glance
+## 10 Tools at a Glance
 
 | Tool | What It Does | Requires |
 |------|-------------|---------|
-| `agentproxy_fetch` | Fetch any URL through residential proxy | Proxy credentials |
-| `agentproxy_batch_fetch` | Fetch 2–20 URLs concurrently (up to 5x parallel) | Proxy credentials |
-| `agentproxy_extract` | Extract structured fields (title, price, rating...) from any URL | Proxy credentials |
-| `agentproxy_map` | Crawl a URL and return all internal links as JSON array | Proxy credentials |
-| `agentproxy_crawl` | Recursively crawl a site (BFS, depth 1-5) with URL discovery | Proxy credentials |
-| `agentproxy_session` | Sticky session — same IP across every call | Proxy credentials |
-| `agentproxy_search` | Google search -> structured JSON (title, url, snippet) | `NOVADA_API_KEY` |
-| `agentproxy_render` | Render JS-heavy pages with real Chromium [BETA] | `NOVADA_BROWSER_WS` |
-| `agentproxy_status` | Check proxy network health + version | _(none)_ |
+| `novada_proxy_fetch` | Fetch any URL through residential proxy | Proxy credentials |
+| `novada_proxy_batch_fetch` | Fetch 2–20 URLs concurrently (up to 5x parallel) | Proxy credentials |
+| `novada_proxy_extract` | Extract structured fields — heuristic mode (fields) or LLM mode (schema) | Proxy credentials |
+| `novada_proxy_map` | Crawl a URL and return all internal links as JSON array | Proxy credentials |
+| `novada_proxy_crawl` | Recursively crawl a site (BFS, depth 1-5) with URL discovery | Proxy credentials |
+| `novada_proxy_session` | Sticky session — same IP across every call | Proxy credentials |
+| `novada_proxy_search` | Google search -> structured JSON (title, url, snippet) | `NOVADA_API_KEY` |
+| `novada_proxy_render` | Render JS-heavy pages with real Chromium [BETA] | `NOVADA_BROWSER_WS` |
+| `novada_proxy_research` | One-shot deep research — search + fetch + synthesize | `NOVADA_API_KEY` + Proxy |
+| `novada_proxy_status` | Check proxy network health + version | _(none)_ |
 
 ---
+
+## Quick Decision Guide
+
+| I want to... | Use this tool |
+|--------------|---------------|
+| Fetch a single URL | `novada_proxy_fetch` |
+| Fetch 2–20 URLs at once | `novada_proxy_batch_fetch` |
+| Extract specific fields (title, price...) | `novada_proxy_extract` with `fields` |
+| Extract ANY field via schema | `novada_proxy_extract` with `schema` |
+| Find all links on a page | `novada_proxy_map` |
+| Crawl an entire site | `novada_proxy_crawl` |
+| Research a topic | `novada_proxy_research` |
+| Search Google | `novada_proxy_search` |
+| Render a JS-heavy page | `novada_proxy_render` |
+| Keep same IP across calls | `novada_proxy_session` |
+| Check if proxy works | `novada_proxy_status` |
 
 ## When To Use Which Tool
 
 ```
 Goal: "Scrape a single URL"
-  └─ Static HTML page?          → agentproxy_fetch
-  └─ Need specific fields?      → agentproxy_extract
-  └─ React/Vue SPA / blank page? → agentproxy_render
+  └─ Static HTML page?          → novada_proxy_fetch
+  └─ Need specific fields?      → novada_proxy_extract (fields or schema mode)
+  └─ React/Vue SPA / blank page? → novada_proxy_render
 
 Goal: "Scrape multiple URLs"
-  └─ You have the URLs already  → agentproxy_batch_fetch
-  └─ You need to discover URLs  → agentproxy_map → agentproxy_batch_fetch
+  └─ You have the URLs already  → novada_proxy_batch_fetch
+  └─ You need links from one page → novada_proxy_map → novada_proxy_batch_fetch
+  └─ You need to crawl a whole site → novada_proxy_crawl → novada_proxy_batch_fetch
 
-Goal: "Search the web"          → agentproxy_search → agentproxy_batch_fetch
+Goal: "Research a topic"        → novada_proxy_research (search + fetch + findings in one call)
 
-Goal: "Login + multi-page flow" → agentproxy_session (same session_id)
+Goal: "Search the web"          → novada_proxy_search → novada_proxy_batch_fetch
 
-Goal: "Check if proxy works"    → agentproxy_status
+Goal: "Login + multi-page flow" → novada_proxy_session (same session_id)
+
+Goal: "Check if proxy works"    → novada_proxy_status
 ```
 
 ---
@@ -167,7 +187,7 @@ Pre-built agent workflows that chain multiple tools together. Call these from an
 | `troubleshoot` | Step-by-step proxy diagnosis when things go wrong | `error_message` |
 
 > [!NOTE]
-> Prompts orchestrate multi-tool workflows automatically. For example, `research_topic` runs `agentproxy_search` then `agentproxy_batch_fetch` in sequence — the agent doesn't need to figure out the pipeline.
+> Prompts orchestrate multi-tool workflows automatically. For example, `research_topic` runs `novada_proxy_search` then `novada_proxy_batch_fetch` in sequence — the agent doesn't need to figure out the pipeline.
 
 ---
 
@@ -180,7 +200,7 @@ Always-accessible reference data that agents can read at any time, without makin
 | `proxy://countries` | Complete list of 195+ country codes with city-level targeting |
 | `proxy://error-codes` | All typed error codes with recovery instructions |
 | `proxy://workflows` | Common agent workflow patterns (crawl, research, monitoring) |
-| `proxy://supported-fields` | All fields `agentproxy_extract` can extract with strategies |
+| `proxy://supported-fields` | All fields `novada_proxy_extract` can extract with strategies |
 | `proxy://cost-guide` | Credits per tool, caching behavior, cost optimization tips |
 
 ---
@@ -314,7 +334,7 @@ claude mcp add novada-proxy-mcp \
 
 ## Tools
 
-### `agentproxy_fetch`
+### `novada_proxy_fetch`
 Fetch any URL through a residential proxy. Returns structured JSON with content, status code, and metadata. Auto-retry on network errors. Caches repeated calls (default 300s TTL — `meta.cache_hit: true` means no proxy credit used).
 
 | Parameter | Type | Default | Description |
@@ -330,7 +350,7 @@ Fetch any URL through a residential proxy. Returns structured JSON with content,
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_fetch",
+  "tool": "novada_proxy_fetch",
   "data": { "url": "...", "status_code": 200, "content": "...", "size_bytes": 34000 },
   "meta": { "latency_ms": 1800, "cache_hit": false, "quota": { "credits_estimated": 1 } }
 }
@@ -338,7 +358,7 @@ Fetch any URL through a residential proxy. Returns structured JSON with content,
 
 ---
 
-### `agentproxy_batch_fetch`
+### `novada_proxy_batch_fetch`
 Fetch 2–20 URLs concurrently through residential proxy. Up to 5x faster than sequential fetches. Per-URL errors are captured individually — the batch itself succeeds even if some URLs fail. Reuses response cache for URLs already fetched.
 
 | Parameter | Type | Default | Description |
@@ -353,7 +373,7 @@ Fetch 2–20 URLs concurrently through residential proxy. Up to 5x faster than s
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_batch_fetch",
+  "tool": "novada_proxy_batch_fetch",
   "data": {
     "requested": 3,
     "succeeded": 3,
@@ -370,14 +390,14 @@ Fetch 2–20 URLs concurrently through residential proxy. Up to 5x faster than s
 
 ---
 
-### `agentproxy_extract`
+### `novada_proxy_extract`
 Extract structured fields from any URL using heuristic pattern matching (meta tags, Open Graph, JSON-LD, Schema.org). Lightweight — no LLM needed. Set `render_fallback: true` to automatically retry via real Chromium if the proxy fetch fails.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
 | `url` | string | required | Target URL |
 | `fields` | string[] | required | Fields to extract: `title`, `price`, `description`, `rating`, `image`, `author`, `date`... |
-| `render_fallback` | boolean | `false` | Auto-retry via `agentproxy_render` on TLS/bot block |
+| `render_fallback` | boolean | `false` | Auto-retry via `novada_proxy_render` on TLS/bot block |
 | `country` | string | — | Geo-target the fetch |
 | `timeout` | number | `60` | Timeout in seconds |
 
@@ -385,7 +405,7 @@ Extract structured fields from any URL using heuristic pattern matching (meta ta
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_extract",
+  "tool": "novada_proxy_extract",
   "data": {
     "url": "https://books.toscrape.com/...",
     "fields": { "title": "A Light in the Attic", "price": "£51.77", "description": null },
@@ -397,8 +417,8 @@ Extract structured fields from any URL using heuristic pattern matching (meta ta
 
 ---
 
-### `agentproxy_map`
-Crawl a URL and return all internal links as a structured JSON array. Use as the discovery step before `agentproxy_batch_fetch` to crawl an entire site without guessing URLs.
+### `novada_proxy_map`
+Crawl a URL and return all internal links as a structured JSON array. Use as the discovery step before `novada_proxy_batch_fetch` to crawl an entire site without guessing URLs.
 
 | Parameter | Type | Default | Description |
 |-----------|------|---------|-------------|
@@ -412,7 +432,7 @@ Crawl a URL and return all internal links as a structured JSON array. Use as the
 ```json
 {
   "ok": true,
-  "tool": "agentproxy_map",
+  "tool": "novada_proxy_map",
   "data": {
     "domain": "books.toscrape.com",
     "internal_url_count": 20,
@@ -425,7 +445,7 @@ Crawl a URL and return all internal links as a structured JSON array. Use as the
 
 ---
 
-### `agentproxy_session`
+### `novada_proxy_session`
 Sticky session fetch — every call with the same `session_id` uses the same residential IP. Essential for login flows, paginated scraping, and price monitoring. Supports `verify_sticky: true` to confirm IP consistency before relying on it.
 
 | Parameter | Type | Default | Description |
@@ -440,7 +460,7 @@ Sticky session fetch — every call with the same `session_id` uses the same res
 
 ---
 
-### `agentproxy_search`
+### `novada_proxy_search`
 Structured Google search via Novada Scraper API. Returns titles, URLs, and snippets as clean JSON — no HTML parsing needed.
 
 | Parameter | Type | Default | Description |
@@ -452,7 +472,7 @@ Structured Google search via Novada Scraper API. Returns titles, URLs, and snipp
 
 ---
 
-### `agentproxy_render` [BETA]
+### `novada_proxy_render` [BETA]
 Render JavaScript-heavy pages using Novada's Browser API (real Chromium, full JS execution). Use for SPAs, React/Vue apps, and pages that return blank with a standard HTTP fetch.
 
 **Requires:** `NOVADA_BROWSER_WS` — copy the Puppeteer URL from Dashboard -> Browser API -> Playground
@@ -464,11 +484,110 @@ Render JavaScript-heavy pages using Novada's Browser API (real Chromium, full JS
 | `wait_for` | string | — | CSS selector to wait for before extracting (e.g. `.product-title`) |
 | `timeout` | number | `60` | Timeout in seconds (5–120) |
 
-> Costs ~5 proxy credits per call vs 1 for `agentproxy_fetch`. Use `agentproxy_extract` with `render_fallback: true` for automatic escalation when needed.
+> Costs ~5 proxy credits per call vs 1 for `novada_proxy_fetch`. Use `novada_proxy_extract` with `render_fallback: true` for automatic escalation when needed.
 
 ---
 
-### `agentproxy_status`
+### `novada_proxy_crawl`
+Recursively crawl a website via BFS traversal. Starts from a URL, discovers links at each depth level, and returns the full URL tree with metadata.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `url` | string | required | Starting URL to crawl |
+| `depth` | number | `2` | BFS depth (1–5) |
+| `limit` | number | `50` | Max pages to crawl (10–200) |
+| `include_content` | boolean | `false` | Also return page content for each URL |
+| `country` | string | — | Geo-target all fetches |
+| `format` | string | `markdown` | Content format when `include_content: true` |
+| `timeout` | number | `60` | Per-page timeout in seconds |
+
+**When to use:** Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page.
+
+**Use `novada_proxy_map` instead if:** You only need links from ONE page (one level deep). Map is faster and cheaper for single-page link discovery.
+
+**Chain with:** `novada_proxy_batch_fetch` to scrape specific pages from the URL tree.
+
+**Example:**
+```json
+{
+  "url": "https://example.com",
+  "depth": 2,
+  "limit": 50,
+  "include_content": false
+}
+```
+
+**Response:** `data.pages[]` (url, depth, status_code, total_links), `data.urls[]` (flat array for chaining into `novada_proxy_batch_fetch`)
+
+---
+
+### `novada_proxy_research`
+One-shot research tool — searches the web, fetches top results, and returns structured findings with source previews. The agent can analyze the findings for deeper synthesis.
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `query` | string | required | Research question or topic |
+| `depth` | string | `"standard"` | `"quick"` (3 sources), `"standard"` (5 sources), `"deep"` (10 sources) |
+| `country` | string | — | Localize search results |
+| `timeout` | number | `60` | Timeout in seconds |
+
+**Requires:** `NOVADA_API_KEY` (for Google search) + Proxy credentials (for fetching sources)
+
+**When to use:** Research questions, topic investigation, competitive analysis, fact-finding — when you need content from multiple sources in one call.
+
+**Use `novada_proxy_search` instead if:** You just need search result URLs, not full page content.
+
+**Chain with:** `novada_proxy_fetch` on specific `urls[]` for deeper reading of individual sources.
+
+**Note:** `findings_summary` is a concatenated preview of sources — your agent should analyze `findings[]` for actual synthesis.
+
+**Example:**
+```json
+{
+  "query": "best residential proxy providers 2026",
+  "depth": "standard"
+}
+```
+
+**Response:** `data.findings[]` (title, url, snippet, content_preview), `data.urls[]` (for chaining), `data.findings_summary`
+
+---
+
+### `novada_proxy_extract` — Schema Mode
+
+In addition to `fields` (heuristic extraction), `novada_proxy_extract` supports a `schema` parameter for extracting any arbitrary field via your agent's LLM — zero additional API cost.
+
+#### Schema Mode (LLM Extraction)
+Pass `schema` instead of `fields` for arbitrary field extraction. The tool returns cleaned page content + an extraction prompt — your agent does the extraction (zero additional API cost).
+
+| Parameter | Type | Default | Description |
+|-----------|------|---------|-------------|
+| `url` | string | required | Target URL |
+| `schema` | object | — | Keys = field names, values = field descriptions. Use instead of `fields`. |
+| `render_fallback` | boolean | `false` | Auto-retry via `novada_proxy_render` on TLS/bot block |
+| `country` | string | — | Geo-target the fetch |
+| `timeout` | number | `60` | Timeout in seconds |
+
+**Example:**
+```json
+{
+  "url": "https://example.com/product",
+  "schema": {
+    "product_name": "The full product name",
+    "price": "Current price with currency",
+    "warranty": "Warranty terms and duration",
+    "return_policy": "Return policy summary"
+  }
+}
+```
+
+**Response:** `data.mode = "llm_extract"`, `data.content` (cleaned markdown), `data.extraction_prompt` (instructions for your agent to follow and extract the fields)
+
+**Security:** Schema keys must be alphanumeric/underscore (a-z, 0-9, _), max 50 chars. Values max 200 chars.
+
+---
+
+### `novada_proxy_status`
 Check proxy network connectivity and version. Makes a live proxy call to verify the connection is working. No credentials required.
 
 ---
@@ -478,10 +597,10 @@ Check proxy network connectivity and version. Makes a live proxy call to verify 
 ### Site crawl pipeline (map -> batch)
 ```
 # Agent task: "Read all products on this catalogue"
-1. agentproxy_map(url="https://books.toscrape.com", limit=50)
+1. novada_proxy_map(url="https://books.toscrape.com", limit=50)
    → returns 20–50 internal URLs in 4s, 1 credit
 
-2. agentproxy_batch_fetch(urls=[...20 URLs], concurrency=5)
+2. novada_proxy_batch_fetch(urls=[...20 URLs], concurrency=5)
    → fetches all 20 pages in parallel, ~4s wall time, 20 credits
    (vs ~60s sequential = 15x speedup)
 ```
@@ -489,34 +608,34 @@ Check proxy network connectivity and version. Makes a live proxy call to verify 
 ### Research pipeline (search -> batch)
 ```
 # Agent task: "Find and read top 5 pages about X"
-1. agentproxy_search(query="residential proxy MCP", num=5)
+1. novada_proxy_search(query="residential proxy MCP", num=5)
    → structured JSON: titles, URLs, snippets
 
-2. agentproxy_batch_fetch(urls=[...5 URLs], format="markdown")
+2. novada_proxy_batch_fetch(urls=[...5 URLs], format="markdown")
    → full content of all 5 pages in parallel
 ```
 
 ### Sticky session — login + multi-page scrape
 ```
 # Same IP across all calls
-agentproxy_session(session_id="job_001", url="https://example.com/login")
-agentproxy_session(session_id="job_001", url="https://example.com/dashboard")
-agentproxy_session(session_id="job_001", url="https://example.com/data/page/1")
-agentproxy_session(session_id="job_001", url="https://example.com/data/page/2")
+novada_proxy_session(session_id="job_001", url="https://example.com/login")
+novada_proxy_session(session_id="job_001", url="https://example.com/dashboard")
+novada_proxy_session(session_id="job_001", url="https://example.com/data/page/1")
+novada_proxy_session(session_id="job_001", url="https://example.com/data/page/2")
 ```
 
 ### Price monitoring — same product, three markets
 ```
-agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="US")
-agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="DE")
-agentproxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="JP")
+novada_proxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="US")
+novada_proxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="DE")
+novada_proxy_fetch(url="https://amazon.com/dp/B0BSHF7WHW", country="JP")
 # Second call per URL is a cache hit (0ms, 0 credits) if within 300s TTL
 ```
 
 ### Extract structured data
 ```
 # Agent task: "Get product details without parsing HTML"
-agentproxy_extract(
+novada_proxy_extract(
   url="https://books.toscrape.com/catalogue/a-light-in-the-attic_1000/index.html",
   fields=["title", "price", "description", "rating"],
   render_fallback=true  # auto-retry via Chromium if proxy gets blocked
@@ -527,7 +646,7 @@ agentproxy_extract(
 
 ## Response Cache
 
-All `agentproxy_fetch` and `agentproxy_batch_fetch` calls are cached in-process. Repeated fetches to the same URL within the TTL window consume **zero proxy credits**.
+All `novada_proxy_fetch` and `novada_proxy_batch_fetch` calls are cached in-process. Repeated fetches to the same URL within the TTL window consume **zero proxy credits**.
 
 | Behavior | Detail |
 |----------|--------|
@@ -554,7 +673,7 @@ Every error response includes a typed `error.code`, `recoverable` flag, and `age
 
 | Code | Meaning | Recoverable | Agent Action |
 |------|---------|-------------|--------------|
-| `BOT_DETECTION_SUSPECTED` | HTTP 4xx — target blocked the request | ✓ | Retry with `agentproxy_render` or different `country` |
+| `BOT_DETECTION_SUSPECTED` | HTTP 4xx — target blocked the request | ✓ | Retry with `novada_proxy_render` or different `country` |
 | `TLS_ERROR` | TLS/SSL connection failed through proxy | ✓ | Retry with a different `country` parameter |
 | `TIMEOUT` | Request exceeded timeout limit | ✓ | Increase `timeout` or retry |
 | `RATE_LIMITED` | HTTP 429 — too many requests | ✓ | Wait 5s and retry |
@@ -562,7 +681,7 @@ Every error response includes a typed `error.code`, `recoverable` flag, and `age
 | `SESSION_STICKINESS_FAILED` | Same IP not maintained | ✓ | Retry `verify_sticky: true` to confirm |
 | `INVALID_INPUT` | Bad parameter value | ✗ | Fix the parameter and retry |
 | `PROVIDER_NOT_CONFIGURED` | Missing env vars | ✗ | Set credentials and restart MCP |
-| `UNKNOWN_ERROR` | Unexpected error | ✓ | Check `agentproxy_status`, retry |
+| `UNKNOWN_ERROR` | Unexpected error | ✓ | Check `novada_proxy_status`, retry |
 
 **Error response format:**
 ```json
@@ -572,7 +691,7 @@ Every error response includes a typed `error.code`, `recoverable` flag, and `age
     "code": "BOT_DETECTION_SUSPECTED",
     "message": "HTTP 403 — request blocked by target",
     "recoverable": true,
-    "agent_instruction": "Try agentproxy_render (real browser). Or retry with a different country/session_id."
+    "agent_instruction": "Try novada_proxy_render (real browser). Or retry with a different country/session_id."
   }
 }
 ```
@@ -656,8 +775,8 @@ Tested across 3 Novada proxy types with 33 real-world tests (2026-04-28):
 | Datacenter IPs blocked on anti-bot sites | Use residential or ISP proxy type (`NOVADA_PROXY_ZONE=res`) |
 | Proxy-side DNS errors surface as `TLS_ERROR` | Check if domain exists before retrying with different country |
 | CLI is stateless (no cross-invocation cache) | Use MCP server for cache benefits, or re-fetch same URLs within one CLI batch |
-| `agentproxy_render` requires Browser API key | Set `NOVADA_BROWSER_WS` env var — get it from novada.com dashboard |
-| Extraction uses heuristics, not LLM | For complex extraction, use `fetch(format="raw")` and parse yourself |
+| `novada_proxy_render` requires Browser API key | Set `NOVADA_BROWSER_WS` env var — get it from novada.com dashboard |
+| Heuristic extraction misses a field | Use `schema` mode: pass `schema:{"field":"description"}` — returns cleaned content + extraction prompt for your agent to extract any field (zero-cost LLM extraction) |
 
 ---
 
@@ -687,14 +806,14 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 
 <p align="center">
   <a href="#novada-proxy"><img src="https://img.shields.io/badge/lang-English-blue?style=flat-square" alt="返回英文"></a>
-  <img src="https://img.shields.io/badge/工具-9个-orange?style=flat-square" alt="9 个工具">
+  <img src="https://img.shields.io/badge/工具-10个-orange?style=flat-square" alt="10 个工具">
   <img src="https://img.shields.io/badge/提示词-5个-blue?style=flat-square" alt="5 个提示词">
   <img src="https://img.shields.io/badge/资源-5个-green?style=flat-square" alt="5 个资源">
-  <img src="https://img.shields.io/badge/测试-307个-brightgreen?style=flat-square" alt="307 个测试">
+  <img src="https://img.shields.io/badge/测试-430个-brightgreen?style=flat-square" alt="430 个测试">
 </p>
 
 <p align="center">
-  <a href="#9-个工具">工具</a> &middot;
+  <a href="#10-个工具">工具</a> &middot;
   <a href="#5-个提示词">提示词</a> &middot;
   <a href="#5-个资源">资源</a> &middot;
   <a href="#快速安装">安装</a> &middot;
@@ -711,18 +830,19 @@ MIT © [Novada](https://www.novada.com) — see [LICENSE](LICENSE)
 
 ---
 
-## 9 个工具
+## 10 个工具
 
 ```
-agentproxy_fetch       → 通过住宅代理抓取任意 URL
-agentproxy_batch_fetch → 并发抓取 2-20 个 URL（最高 5 倍加速）
-agentproxy_extract     → 从页面提取结构化字段（标题、价格、评分…）
-agentproxy_map         → 爬取页面，返回所有内部链接 JSON 数组
-agentproxy_crawl       → 递归爬取站点（BFS，深度 1-5），自动发现 URL
-agentproxy_session     → 粘性会话 — 同一 session_id 始终同一 IP
-agentproxy_search      → Google 搜索，返回结构化 JSON（无需解析 HTML）
-agentproxy_render      → 真实 Chromium 渲染 JS 页面 [BETA]
-agentproxy_status      → 检查代理网络健康状态
+novada_proxy_fetch       → 通过住宅代理抓取任意 URL
+novada_proxy_batch_fetch → 并发抓取 2-20 个 URL（最高 5 倍加速）
+novada_proxy_extract     → 从页面提取结构化字段（标题、价格、评分…）
+novada_proxy_map         → 爬取页面，返回所有内部链接 JSON 数组
+novada_proxy_crawl       → 递归爬取站点（BFS，深度 1-5），自动发现 URL
+novada_proxy_session     → 粘性会话 — 同一 session_id 始终同一 IP
+novada_proxy_search      → Google 搜索，返回结构化 JSON（无需解析 HTML）
+novada_proxy_render      → 真实 Chromium 渲染 JS 页面 [BETA]
+novada_proxy_research    → 一键深度研究 — 搜索 + 抓取 + 综合分析
+novada_proxy_status      → 检查代理网络健康状态
 ```
 
 ---
@@ -750,28 +870,47 @@ agentproxy_status      → 检查代理网络健康状态
 | `proxy://countries` | 195+ 国家代码完整列表，含城市级定位 |
 | `proxy://error-codes` | 所有类型化错误码及恢复指令 |
 | `proxy://workflows` | 常用智能体工作流模式（爬取、研究、监控） |
-| `proxy://supported-fields` | `agentproxy_extract` 支持的所有提取字段及策略 |
+| `proxy://supported-fields` | `novada_proxy_extract` 支持的所有提取字段及策略 |
 | `proxy://cost-guide` | 每个工具的额度消耗、缓存行为、成本优化技巧 |
 
 ---
+
+## 快速决策指南
+
+| 我想要... | 使用工具 |
+|-----------|---------|
+| 抓取单个 URL | `novada_proxy_fetch` |
+| 同时抓取 2-20 个 URL | `novada_proxy_batch_fetch` |
+| 提取特定字段（标题、价格…） | `novada_proxy_extract` 使用 `fields` |
+| 提取任意字段（Schema 模式） | `novada_proxy_extract` 使用 `schema` |
+| 获取页面上的所有链接 | `novada_proxy_map` |
+| 爬取整个站点 | `novada_proxy_crawl` |
+| 研究某个主题 | `novada_proxy_research` |
+| 搜索 Google | `novada_proxy_search` |
+| 渲染 JS 重型页面 | `novada_proxy_render` |
+| 跨请求保持同一 IP | `novada_proxy_session` |
+| 检查代理是否正常 | `novada_proxy_status` |
 
 ## 工具选择决策树
 
 ```
 目标：抓取单个 URL
-  ├─ 静态 HTML 页面？            → agentproxy_fetch
-  ├─ 需要特定字段（价格/标题）？  → agentproxy_extract
-  └─ React/Vue SPA / 内容为空？  → agentproxy_render
+  ├─ 静态 HTML 页面？                    → novada_proxy_fetch
+  ├─ 需要特定字段（价格/标题）？          → novada_proxy_extract（fields 或 schema 模式）
+  └─ React/Vue SPA / 内容为空？          → novada_proxy_render
 
 目标：批量抓取多个 URL
-  ├─ 已有 URL 列表？             → agentproxy_batch_fetch
-  └─ 需要先发现 URL？            → agentproxy_map → agentproxy_batch_fetch
+  ├─ 已有 URL 列表？                     → novada_proxy_batch_fetch
+  ├─ 需要获取单页链接？                  → novada_proxy_map → novada_proxy_batch_fetch
+  └─ 需要爬取整个站点？                  → novada_proxy_crawl → novada_proxy_batch_fetch
 
-目标：网页搜索                   → agentproxy_search → agentproxy_batch_fetch
+目标：研究某个主题                       → novada_proxy_research（一次调用搜索 + 抓取 + 分析）
 
-目标：登录 + 多步骤流程           → agentproxy_session（相同 session_id）
+目标：网页搜索                          → novada_proxy_search → novada_proxy_batch_fetch
 
-目标：验证代理是否正常工作        → agentproxy_status
+目标：登录 + 多步骤流程                  → novada_proxy_session（相同 session_id）
+
+目标：验证代理是否正常工作               → novada_proxy_status
 ```
 
 ---
@@ -781,13 +920,13 @@ agentproxy_status      → 检查代理网络健康状态
 ### 全站爬取流水线（推荐）
 
 ```
-agentproxy_map(url, limit=50)
+novada_proxy_map(url, limit=50)
         │
         ▼
   返回 20-50 个内部链接（1 credit，4 秒）
         │
         ▼
-agentproxy_batch_fetch(urls, concurrency=5)
+novada_proxy_batch_fetch(urls, concurrency=5)
         │
         ▼
   并发抓取所有页面（N credits，~4 秒，比串行快 15x）
@@ -796,13 +935,13 @@ agentproxy_batch_fetch(urls, concurrency=5)
 ### 搜索研究流水线
 
 ```
-agentproxy_search(query, num=10)
+novada_proxy_search(query, num=10)
         │
         ▼
   结构化 JSON：标题 + URL + 摘要
         │
         ▼
-agentproxy_batch_fetch(urls, format="markdown")
+novada_proxy_batch_fetch(urls, format="markdown")
         │
         ▼
   全部页面内容并行返回
@@ -813,10 +952,10 @@ agentproxy_batch_fetch(urls, format="markdown")
 ```
 session_id = "job_001"
 
-agentproxy_session(session_id, url="/login")    → 同一 IP
-agentproxy_session(session_id, url="/dashboard") → 同一 IP
-agentproxy_session(session_id, url="/data/1")    → 同一 IP
-agentproxy_session(session_id, url="/data/2")    → 同一 IP
+novada_proxy_session(session_id, url="/login")    → 同一 IP
+novada_proxy_session(session_id, url="/dashboard") → 同一 IP
+novada_proxy_session(session_id, url="/data/1")    → 同一 IP
+novada_proxy_session(session_id, url="/data/2")    → 同一 IP
 ```
 
 ---
@@ -893,7 +1032,7 @@ agentproxy_session(session_id, url="/data/2")    → 同一 IP
   "error": {
     "code": "BOT_DETECTION_SUSPECTED",
     "recoverable": true,
-    "agent_instruction": "Try agentproxy_render (real browser). Or retry with a different country/session_id."
+    "agent_instruction": "Try novada_proxy_render (real browser). Or retry with a different country/session_id."
   }
 }
 ```
@@ -909,7 +1048,7 @@ agentproxy_session(session_id, url="/data/2")    → 同一 IP
 | `PROVIDER_NOT_CONFIGURED` | 缺少凭证 | ✗ |
 
 ### 6. 批量并发抓取
-`agentproxy_batch_fetch` 内置信号量并发控制：
+`novada_proxy_batch_fetch` 内置信号量并发控制：
 
 ```json
 // 10 个 URL，concurrency=5，wall time = ~8.8s（串行估计 ~50s）
@@ -936,13 +1075,13 @@ agentproxy_session(session_id, url="/data/2")    → 同一 IP
 | 通用 HTTP | `PROXY_URL=http://user:pass@host:port` | 任意代理服务商 |
 
 ### 8. 渐进式降级（render_fallback）
-`agentproxy_extract` 支持自动升级到浏览器渲染：
+`novada_proxy_extract` 支持自动升级到浏览器渲染：
 
 ```
 代理抓取失败（TLS / Bot检测）
         │
         ▼ render_fallback=true
-agentproxy_render（真实 Chromium）
+novada_proxy_render（真实 Chromium）
         │
         ▼
 data.extracted_via = "render"  （agent 知道走了哪条路径）
@@ -996,7 +1135,7 @@ claude mcp add novada-proxy-mcp \
 
 ## 工具参数速查
 
-### agentproxy_fetch
+### novada_proxy_fetch
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `url` | string | 必填 | 目标 URL |
@@ -1006,7 +1145,7 @@ claude mcp add novada-proxy-mcp \
 | `format` | string | `markdown` | `markdown`（去 HTML）或 `raw`（原始 HTML） |
 | `timeout` | number | `60` | 超时秒数（1-120） |
 
-### agentproxy_batch_fetch
+### novada_proxy_batch_fetch
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `urls` | string[] | 必填 | 2-20 个 URL |
@@ -1014,7 +1153,7 @@ claude mcp add novada-proxy-mcp \
 | `country` | string | — | 对所有 URL 使用相同国家 |
 | `format` | string | `markdown` | `markdown` 或 `raw` |
 
-### agentproxy_extract
+### novada_proxy_extract
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `url` | string | 必填 | 目标 URL |
@@ -1022,14 +1161,14 @@ claude mcp add novada-proxy-mcp \
 | `render_fallback` | boolean | `false` | 代理失败时自动切换到浏览器渲染 |
 | `country` | string | — | 地理定向 |
 
-### agentproxy_map
+### novada_proxy_map
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `url` | string | 必填 | 起始 URL |
 | `limit` | number | `50` | 最多返回 URL 数（10-200） |
 | `include_external` | boolean | `false` | 包含站外链接 |
 
-### agentproxy_session
+### novada_proxy_session
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `session_id` | string | 必填 | 会话 ID（不含连字符，最多 64 字符） |
@@ -1037,7 +1176,7 @@ claude mcp add novada-proxy-mcp \
 | `verify_sticky` | boolean | `false` | 验证 IP 一致性（需额外 15-25 秒） |
 | `country` | string | — | 国家代码 |
 
-### agentproxy_search
+### novada_proxy_search
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `query` | string | 必填 | 搜索关键词 |
@@ -1045,13 +1184,109 @@ claude mcp add novada-proxy-mcp \
 | `country` | string | — | 本地化结果（`us`、`de`、`jp`...） |
 | `language` | string | — | 语言（`en`、`zh`、`de`...） |
 
-### agentproxy_render [BETA]
+### novada_proxy_render [BETA]
 | 参数 | 类型 | 默认 | 说明 |
 |------|------|------|------|
 | `url` | string | 必填 | 目标 URL |
 | `format` | string | `markdown` | `markdown` · `html` · `text` |
 | `wait_for` | string | — | 等待 CSS 选择器后再提取（如 `.product-title`） |
 | `timeout` | number | `60` | 超时秒数（5-120） |
+
+### novada_proxy_crawl
+递归 BFS 爬取站点，从起始 URL 出发，按深度逐层发现链接，返回完整 URL 树及元数据。
+
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `url` | string | 必填 | 起始 URL |
+| `depth` | number | `2` | BFS 深度（1-5） |
+| `limit` | number | `50` | 最大爬取页数（10-200） |
+| `include_content` | boolean | `false` | 同时返回每个页面的内容 |
+| `country` | string | — | 地理定向所有请求 |
+| `format` | string | `markdown` | `include_content: true` 时的内容格式 |
+| `timeout` | number | `60` | 每页超时秒数 |
+
+**适用场景：** 全站抓取、站点地图生成、内容索引 — 需要抓取**多个页面**时使用。
+
+**改用 `novada_proxy_map` 的情况：** 只需要**单页**链接（一层深度）。Map 更快、更省额度。
+
+**组合使用：** 将 `data.urls[]` 传入 `novada_proxy_batch_fetch` 并发抓取。
+
+**请求示例：**
+```json
+{
+  "url": "https://example.com",
+  "depth": 2,
+  "limit": 50,
+  "include_content": false
+}
+```
+
+**响应：** `data.pages[]`（url、depth、status_code、total_links），`data.urls[]`（扁平数组，可直接传给 `novada_proxy_batch_fetch`）
+
+---
+
+### novada_proxy_research
+一键深度研究工具 — 搜索网络、抓取排名靠前的结果，返回含来源预览的结构化分析。智能体可对 findings 进行进一步综合分析。
+
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `query` | string | 必填 | 研究问题或主题 |
+| `depth` | string | `"standard"` | `"quick"`（3 个来源）、`"standard"`（5 个）、`"deep"`（10 个） |
+| `country` | string | — | 本地化搜索结果 |
+| `timeout` | number | `60` | 超时秒数 |
+
+**需要：** `NOVADA_API_KEY`（Google 搜索）+ 代理凭证（抓取来源页面）
+
+**适用场景：** 研究问题、主题调研、竞品分析、事实核查 — 需要一次调用获取多个来源内容时。
+
+**改用 `novada_proxy_search` 的情况：** 只需要搜索结果 URL，不需要完整页面内容。
+
+**组合使用：** 对 `data.urls[]` 中的特定 URL 调用 `novada_proxy_fetch` 进行深度阅读。
+
+**注意：** `findings_summary` 是各来源内容的拼接预览 — 智能体应分析 `findings[]` 进行实质性综合。
+
+**请求示例：**
+```json
+{
+  "query": "2026年最佳住宅代理服务商",
+  "depth": "standard"
+}
+```
+
+**响应：** `data.findings[]`（title、url、snippet、content_preview），`data.urls[]`（可链式传给其他工具），`data.findings_summary`
+
+---
+
+### novada_proxy_extract — Schema 模式（LLM 提取）
+
+除 `fields`（启发式提取）外，`novada_proxy_extract` 还支持 `schema` 参数，通过智能体自身的 LLM 提取任意字段 — **零额外 API 费用**。
+
+传入 `schema` 替代 `fields`，工具返回清洗后的页面内容 + 提取提示词 — 由你的智能体完成提取。
+
+| 参数 | 类型 | 默认 | 说明 |
+|------|------|------|------|
+| `url` | string | 必填 | 目标 URL |
+| `schema` | object | — | 键 = 字段名，值 = 字段描述。替代 `fields` 使用。 |
+| `render_fallback` | boolean | `false` | 代理失败时自动切换到浏览器渲染 |
+| `country` | string | — | 地理定向 |
+| `timeout` | number | `60` | 超时秒数 |
+
+**请求示例：**
+```json
+{
+  "url": "https://example.com/product",
+  "schema": {
+    "product_name": "完整的产品名称",
+    "price": "当前价格（含货币符号）",
+    "warranty": "保修条款和期限",
+    "return_policy": "退货政策摘要"
+  }
+}
+```
+
+**响应：** `data.mode = "llm_extract"`，`data.content`（清洗后的 Markdown 内容），`data.extraction_prompt`（供智能体遵循并提取字段的指令）
+
+**安全限制：** Schema 键名只能包含字母、数字、下划线（a-z、0-9、_），最多 50 字符；值最多 200 字符。
 
 ---
 

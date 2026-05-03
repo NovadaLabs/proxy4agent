@@ -1,4 +1,4 @@
-import { agentproxyFetch } from "./fetch.js";
+import { novadaProxyFetch } from "./fetch.js";
 import type { ProxyAdapter, ProxyCredentials } from "../adapters/index.js";
 import type { ProxySuccessResponse } from "../types.js";
 import { SAFE_COUNTRY, SAFE_SESSION_ID, QUOTA_NOTE } from "../validation.js";
@@ -23,7 +23,7 @@ export interface BatchFetchResult {
   latency_ms: number;
 }
 
-export async function agentproxyBatchFetch(
+export async function novadaProxyBatchFetch(
   params: BatchFetchParams,
   adapter: ProxyAdapter,
   credentials: ProxyCredentials
@@ -67,7 +67,7 @@ export async function agentproxyBatchFetch(
     const start = Date.now();
     await acquire();
     try {
-      const rawResult = await agentproxyFetch(
+      const rawResult = await novadaProxyFetch(
         { url, country, session_id, format, timeout },
         adapter,
         credentials
@@ -130,7 +130,7 @@ export async function agentproxyBatchFetch(
 
   const result: ProxySuccessResponse = {
     ok: true,
-    tool: "agentproxy_batch_fetch",
+    tool: "novada_proxy_batch_fetch",
     data: {
       requested: urls.length,
       succeeded,

@@ -21,7 +21,7 @@ You are a security auditor reviewing a residential proxy MCP server called "prox
 - Error messages are returned to agents and may be logged by MCP hosts
 
 ## Project location
-~/Projects/agentproxy/
+~/Projects/novada_proxy/
 
 ## Files to audit (read ALL of these)
 - src/index.ts — error classification (classifyError, lines 52-104), credential redaction (lines 363-375)
@@ -49,7 +49,7 @@ You are a security auditor reviewing a residential proxy MCP server called "prox
 
 5. **Generic adapter PROXY_URL:** Users set PROXY_URL="http://user:pass@host:port". Is this parsed safely? Could a malicious PROXY_URL redirect traffic?
 
-6. **Session verification leaks:** agentproxy_session makes requests to httpbin.org/ip. Could this leak the proxy IP to a third party in a way that compromises the session?
+6. **Session verification leaks:** novada_proxy_session makes requests to httpbin.org/ip. Could this leak the proxy IP to a third party in a way that compromises the session?
 
 ## Output format
 ```markdown
@@ -80,7 +80,7 @@ You are a security auditor reviewing a residential proxy MCP server called "prox
 You are a QA engineer auditing test coverage for "proxy4agents", a residential proxy MCP server. The project has 113 existing tests in 5 files but significant gaps. Your job: map every code path that is NOT tested, prioritize by blast radius, and write test descriptions.
 
 ## Project location
-~/Projects/agentproxy/
+~/Projects/novada_proxy/
 
 ## Current test files (read ALL)
 - src/__tests__/validators.test.ts — tests validateFetchParams, validateSessionParams, validateRenderParams, validateSearchParams, validateBatchFetchParams
@@ -91,7 +91,7 @@ You are a QA engineer auditing test coverage for "proxy4agents", a residential p
 
 ## Source files to audit for untested paths
 - src/index.ts — classifyError() function (lines 52-104), MCP tool dispatch (lines 257-382), prompt handlers (lines 428-538), resource handlers (lines 565-687)
-- src/tools/fetch.ts — agentproxyFetch() cache lookup/store/pruning, decompression fallback, retry logic, 100KB truncation
+- src/tools/fetch.ts — novadaProxyFetch() cache lookup/store/pruning, decompression fallback, retry logic, 100KB truncation
 - src/tools/batch.ts — semaphore concurrency control, per-URL error capture, error code inference from message
 - src/tools/extract.ts — extractField() heuristics (ALL 15+ field types), render escalation logic, JSON-LD deep search
 - src/tools/map.ts — URL resolution, same-domain filtering, subdomain matching, sitemap hint
@@ -167,7 +167,7 @@ You're evaluating "proxy4agents" (bestproxy4agents-mcp), a residential proxy MCP
 - Apify MCP (1000+ dynamic Actors)
 
 ## Project location
-~/Projects/agentproxy/
+~/Projects/novada_proxy/
 
 ## Files to evaluate (agent-facing surface)
 - src/index.ts — TOOLS array (lines 108-235): read EVERY tool's name, description, and inputSchema
@@ -213,13 +213,13 @@ Compare the agent experience vs. BrightData MCP, Firecrawl, Apify:
 ### 5. Onboarding Friction
 Walk through the setup from zero:
 1. Install: `claude mcp add bestproxy4agents-mcp -e ... -- npx -y bestproxy4agents-mcp`
-2. First call: `agentproxy_status`
+2. First call: `novada_proxy_status`
 3. Common workflow: search → batch_fetch → extract
 Rate each step: frictionless / minor friction / blocker
 
 ### 6. Agent-First Design Score
 Rate 1-10 on each:
-- Tool naming consistency (agentproxy_ prefix — helpful or noisy?)
+- Tool naming consistency (novada_proxy_ prefix — helpful or noisy?)
 - Response structure predictability (always ok/data/meta?)
 - Credit transparency (does the agent know how many credits it used?)
 - Self-diagnostic capability (can the agent debug failures without human help?)
@@ -260,7 +260,7 @@ Rate 1-10 on each:
 You are a senior backend engineer reviewing the architecture and performance characteristics of "proxy4agents", a Node.js MCP server that routes HTTP requests through residential proxies. This server runs as a long-lived process (stdio transport) and handles tool calls from AI agents.
 
 ## Project location
-~/Projects/agentproxy/
+~/Projects/novada_proxy/
 
 ## Files to review (read ALL)
 - src/index.ts — full server (770 lines), error classification, tool dispatch
@@ -343,7 +343,7 @@ You are a senior backend engineer reviewing the architecture and performance cha
 You are a product engineer who builds AI agent systems for a living. You've used BrightData MCP (60+ tools, free 5K req/mo), Firecrawl MCP (recursive crawl, LLM extraction), and Apify MCP (1000+ Actors) in production. Now you're evaluating "proxy4agents" (bestproxy4agents-mcp) as a potential replacement or addition to your stack.
 
 ## Project location
-~/Projects/agentproxy/
+~/Projects/novada_proxy/
 
 ## Files to read
 - README.md (via: gh api repos/NovadaLabs/Novada-proxy/contents/README.md --jq '.content' | base64 -d)
