@@ -6,7 +6,8 @@
     "packages/mcp",
     "packages/cli",
     "packages/sdk",
-    "packages/compat"
+    "packages/compat",
+    "packages/manager"
   ],
   "scripts": {
     "build": "npm run build --workspaces --if-present",

@@ -1,0 +1,435 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Novada Proxy Manager</title>
+  <style>
+    :root {
+      --bg: #0f0f23;
+      --panel: #17172f;
+      --panel-2: #1f203a;
+      --line: #2e3155;
+      --text: #f4f7fb;
+      --muted: #9ca3af;
+      --accent: #6366f1;
+      --accent-2: #22c55e;
+      --danger: #f87171;
+      --mono: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", monospace;
+      --sans: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+    }
+
+    * { box-sizing: border-box; }
+    body {
+      margin: 0;
+      min-height: 100vh;
+      background: var(--bg);
+      color: var(--text);
+      font-family: var(--sans);
+    }
+
+    .shell {
+      display: grid;
+      grid-template-columns: minmax(280px, 360px) minmax(0, 1fr);
+      gap: 20px;
+      min-height: 100vh;
+      padding: 20px;
+    }
+
+    aside, main {
+      min-width: 0;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      margin-bottom: 16px;
+    }
+
+    h1, h2 {
+      margin: 0;
+      letter-spacing: 0;
+    }
+
+    h1 {
+      font-size: 22px;
+      font-weight: 750;
+    }
+
+    h2 {
+      font-size: 15px;
+      margin-bottom: 14px;
+    }
+
+    .pill {
+      border: 1px solid var(--line);
+      color: var(--muted);
+      border-radius: 999px;
+      padding: 5px 9px;
+      font: 12px var(--mono);
+    }
+
+    .panel {
+      background: var(--panel);
+      border: 1px solid var(--line);
+      border-radius: 8px;
+      padding: 16px;
+      margin-bottom: 16px;
+      box-shadow: 0 18px 40px rgba(0, 0, 0, 0.18);
+    }
+
+    .metric {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 12px;
+      padding: 10px 0;
+      border-bottom: 1px solid var(--line);
+    }
+
+    .metric:last-child { border-bottom: 0; }
+    .metric span:first-child { color: var(--muted); }
+    .metric span:last-child {
+      font-family: var(--mono);
+      text-align: right;
+      overflow-wrap: anywhere;
+    }
+
+    .status-dot {
+      display: inline-block;
+      width: 9px;
+      height: 9px;
+      margin-right: 7px;
+      border-radius: 50%;
+      background: var(--danger);
+    }
+
+    .status-dot.on { background: var(--accent-2); }
+
+    label {
+      display: block;
+      margin: 12px 0 6px;
+      color: var(--muted);
+      font-size: 13px;
+    }
+
+    input, select {
+      width: 100%;
+      height: 38px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #101126;
+      color: var(--text);
+      padding: 0 10px;
+      font: 13px var(--mono);
+    }
+
+    button {
+      width: 100%;
+      height: 40px;
+      margin-top: 14px;
+      border: 0;
+      border-radius: 6px;
+      background: var(--accent);
+      color: white;
+      font-weight: 700;
+      cursor: pointer;
+    }
+
+    button:disabled {
+      opacity: 0.6;
+      cursor: wait;
+    }
+
+    .grid-2 {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      gap: 12px;
+    }
+
+    .main-grid {
+      display: grid;
+      grid-template-rows: auto 1fr;
+      gap: 16px;
+      min-height: calc(100vh - 40px);
+    }
+
+    .table-wrap {
+      overflow: auto;
+      border: 1px solid var(--line);
+      border-radius: 8px;
+    }
+
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      min-width: 760px;
+      font: 12px var(--mono);
+    }
+
+    th, td {
+      padding: 11px 12px;
+      border-bottom: 1px solid var(--line);
+      text-align: left;
+      vertical-align: top;
+    }
+
+    th {
+      color: var(--muted);
+      background: var(--panel-2);
+      position: sticky;
+      top: 0;
+    }
+
+    td.url {
+      max-width: 360px;
+      overflow-wrap: anywhere;
+    }
+
+    .result {
+      min-height: 94px;
+      margin-top: 12px;
+      padding: 12px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #101126;
+      color: var(--muted);
+      white-space: pre-wrap;
+      overflow-wrap: anywhere;
+      font: 12px var(--mono);
+    }
+
+    .ok { color: var(--accent-2); }
+    .bad { color: var(--danger); }
+
+    @media (max-width: 860px) {
+      .shell {
+        grid-template-columns: 1fr;
+        padding: 14px;
+      }
+      .main-grid {
+        min-height: auto;
+      }
+      .grid-2 {
+        grid-template-columns: 1fr;
+      }
+    }
+  </style>
+</head>
+<body>
+  <div class="shell">
+    <aside>
+      <div class="brand">
+        <h1>Novada Proxy Manager</h1>
+        <span class="pill">:22999</span>
+      </div>
+
+      <section class="panel">
+        <h2>Status</h2>
+        <div class="metric"><span>Connection</span><span id="connected"><i class="status-dot"></i>offline</span></div>
+        <div class="metric"><span>Provider</span><span id="provider">loading</span></div>
+        <div class="metric"><span>Proxy IP</span><span id="proxyIp">-</span></div>
+        <div class="metric"><span>Uptime</span><span id="uptime">0 ms</span></div>
+      </section>
+
+      <section class="panel">
+        <h2>Quick Test</h2>
+        <label for="testUrl">URL</label>
+        <input id="testUrl" value="https://example.com" autocomplete="off">
+        <div class="grid-2">
+          <div>
+            <label for="testCountry">Country</label>
+            <input id="testCountry" value="US" maxlength="10" autocomplete="off">
+          </div>
+          <div>
+            <label for="testTimeout">Timeout</label>
+            <input id="testTimeout" type="number" value="30" min="1" max="120">
+          </div>
+        </div>
+        <button id="runTest">Run test</button>
+        <div id="testResult" class="result">No test run yet.</div>
+      </section>
+    </aside>
+
+    <main class="main-grid">
+      <section class="panel">
+        <h2>Configuration</h2>
+        <div class="grid-2">
+          <div>
+            <label for="providerInput">Provider</label>
+            <select id="providerInput">
+              <option value="novada">Novada</option>
+              <option value="brightdata">BrightData</option>
+              <option value="smartproxy">Smartproxy</option>
+              <option value="oxylabs">Oxylabs</option>
+              <option value="generic">Generic HTTP</option>
+            </select>
+          </div>
+          <div>
+            <label for="zoneInput">Zone</label>
+            <input id="zoneInput" value="res" autocomplete="off">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="userInput">User</label>
+            <input id="userInput" autocomplete="username">
+          </div>
+          <div>
+            <label for="passInput">Password</label>
+            <input id="passInput" type="password" autocomplete="current-password">
+          </div>
+        </div>
+        <div class="grid-2">
+          <div>
+            <label for="hostInput">Host</label>
+            <input id="hostInput" placeholder="provider default" autocomplete="off">
+          </div>
+          <div>
+            <label for="portInput">Port</label>
+            <input id="portInput" placeholder="provider default" autocomplete="off">
+          </div>
+        </div>
+        <label for="proxyUrlInput">Generic Proxy URL</label>
+        <input id="proxyUrlInput" placeholder="http://user:pass@host:port" autocomplete="off">
+        <div class="grid-2">
+          <div>
+            <label for="apiKeyInput">API Key</label>
+            <input id="apiKeyInput" type="password" autocomplete="off">
+          </div>
+          <div>
+            <label for="browserWsInput">Browser WebSocket</label>
+            <input id="browserWsInput" autocomplete="off">
+          </div>
+        </div>
+        <button id="saveConfig">Save config</button>
+      </section>
+
+      <section class="panel">
+        <h2>Request Log</h2>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Time</th>
+                <th>Method</th>
+                <th>URL</th>
+                <th>Status</th>
+                <th>Latency</th>
+                <th>Country</th>
+                <th>Proxy IP</th>
+              </tr>
+            </thead>
+            <tbody id="logRows">
+              <tr><td colspan="7">No requests yet.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script>
+    const $ = (id) => document.getElementById(id);
+
+    async function jsonFetch(url, options) {
+      const res = await fetch(url, {
+        headers: { "content-type": "application/json" },
+        ...options,
+      });
+      const data = await res.json();
+      if (!res.ok) throw new Error(data.error || `HTTP ${res.status}`);
+      return data;
+    }
+
+    function formatMs(ms) {
+      if (ms > 60000) return `${Math.floor(ms / 60000)}m ${Math.floor((ms % 60000) / 1000)}s`;
+      if (ms > 1000) return `${Math.floor(ms / 1000)}s`;
+      return `${ms} ms`;
+    }
+
+    async function refreshStatus() {
+      try {
+        const status = await jsonFetch("/api/status");
+        $("provider").textContent = status.provider || "none";
+        $("proxyIp").textContent = status.proxy_ip || "-";
+        $("uptime").textContent = formatMs(status.uptime_ms || 0);
+        $("connected").innerHTML = `<i class="status-dot ${status.connected ? "on" : ""}"></i>${status.connected ? "online" : "offline"}`;
+      } catch {
+        $("connected").innerHTML = '<i class="status-dot"></i>offline';
+      }
+    }
+
+    async function refreshConfig() {
+      const config = await jsonFetch("/api/config");
+      $("providerInput").value = config.provider || "novada";
+    }
+
+    async function refreshLogs() {
+      const data = await jsonFetch("/api/logs");
+      const rows = data.logs || [];
+      $("logRows").innerHTML = rows.length ? rows.map((row) => `
+        <tr>
+          <td>${new Date(row.timestamp).toLocaleTimeString()}</td>
+          <td>${row.method}</td>
+          <td class="url">${row.url}</td>
+          <td class="${row.status >= 400 ? "bad" : "ok"}">${row.status}</td>
+          <td>${row.latency_ms} ms</td>
+          <td>${row.country || "-"}</td>
+          <td>${row.proxy_ip || "-"}</td>
+        </tr>
+      `).join("") : '<tr><td colspan="7">No requests yet.</td></tr>';
+    }
+
+    $("runTest").addEventListener("click", async () => {
+      $("runTest").disabled = true;
+      $("testResult").textContent = "Testing...";
+      try {
+        const data = await jsonFetch("/api/test", {
+          method: "POST",
+          body: JSON.stringify({
+            url: $("testUrl").value,
+            country: $("testCountry").value || undefined,
+            timeout: Number($("testTimeout").value || 30),
+          }),
+        });
+        $("testResult").textContent = `HTTP ${data.data.status_code} in ${data.meta.latency_ms} ms\n\n${data.data.content.slice(0, 1200)}`;
+        await Promise.all([refreshStatus(), refreshLogs()]);
+      } catch (error) {
+        $("testResult").textContent = error.message;
+      } finally {
+        $("runTest").disabled = false;
+      }
+    });
+
+    $("saveConfig").addEventListener("click", async () => {
+      $("saveConfig").disabled = true;
+      try {
+        await jsonFetch("/api/config", {
+          method: "POST",
+          body: JSON.stringify({
+            provider: $("providerInput").value,
+            user: $("userInput").value,
+            pass: $("passInput").value,
+            host: $("hostInput").value,
+            port: $("portInput").value,
+            zone: $("zoneInput").value,
+            proxy_url: $("proxyUrlInput").value,
+            api_key: $("apiKeyInput").value,
+            browser_ws: $("browserWsInput").value,
+          }),
+        });
+        await refreshStatus();
+      } finally {
+        $("saveConfig").disabled = false;
+      }
+    });
+
+    refreshConfig().catch(() => {});
+    refreshStatus();
+    refreshLogs();
+    setInterval(refreshStatus, 5000);
+    setInterval(refreshLogs, 3000);
+  </script>
+</body>
+</html>
