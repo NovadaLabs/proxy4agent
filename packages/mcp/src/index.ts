@@ -62,7 +62,7 @@ const TOOLS = [
   {
     name: "novada_proxy_fetch",
     description:
-      "Fetch any URL through residential proxy (2M+ IPs, 195 countries, anti-bot bypass). Returns structured JSON with ok, data.content, data.status_code, meta.latency_ms, and meta.cache_hit.\n\nWHEN TO USE: Static/HTML pages, Amazon, LinkedIn, news sites, most commercial sites.\nUSE novada_proxy_render INSTEAD IF: Page requires JavaScript to load (SPAs, React/Vue apps, dynamic feeds).\nUSE novada_proxy_extract INSTEAD IF: You need structured fields (title, price, rating) not raw content.\nON FAILURE: If error.code is BOT_DETECTION_SUSPECTED → retry with novada_proxy_render. If TLS_ERROR → retry with a different country parameter.\nCACHING: Repeated calls to the same URL+format+country are served from in-process cache (default TTL 300s). meta.cache_hit=true means no proxy credit was used. Sessions with session_id are never cached.",
+      "Fetch any URL through residential proxy (2M+ IPs, 195 countries, anti-bot bypass). Returns JSON: ok, data.content, data.status_code, meta.latency_ms, meta.cache_hit.\n\nWHEN TO USE: Static/HTML pages, Amazon, LinkedIn, news sites, most commercial sites.\nUSE novada_proxy_render INSTEAD IF: Page requires JavaScript to load (SPAs, React/Vue apps, dynamic feeds).\nUSE novada_proxy_extract INSTEAD IF: You need structured fields (title, price, rating) not raw content.\nON FAILURE: If error.code is BOT_DETECTION_SUSPECTED → retry with novada_proxy_render. If TLS_ERROR → retry with a different country parameter.\nCACHING: Same URL+format+country hits in-process cache (TTL 300s). meta.cache_hit=true = no credit used. session_id calls bypass cache.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -96,7 +96,7 @@ const TOOLS = [
   {
     name: "novada_proxy_render",
     description:
-      "[BETA] Render a JavaScript-heavy page using real Chromium (Novada Browser API). Returns structured JSON with ok, data.content. Requires NOVADA_BROWSER_WS env var.\n\nWHEN TO USE: SPAs, React/Vue apps, infinite scroll, pages that require JS to load content.\nUSE novada_proxy_fetch INSTEAD FOR: Static HTML pages — it is 3-5x faster.\nON FAILURE: If error.code is TIMEOUT → increase timeout. If PROVIDER_NOT_CONFIGURED → set NOVADA_BROWSER_WS.",
+      "Render a JavaScript-heavy page with real Chromium [BETA]. Returns structured JSON with ok, data.content. Requires NOVADA_BROWSER_WS env var.\n\nWHEN TO USE: SPAs, React/Vue apps, infinite scroll, pages that require JS to load content.\nUSE novada_proxy_fetch INSTEAD FOR: Static HTML pages — it is 3-5x faster.\nON FAILURE: If error.code is TIMEOUT → increase timeout. If PROVIDER_NOT_CONFIGURED → set NOVADA_BROWSER_WS.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -111,7 +111,7 @@ const TOOLS = [
   {
     name: "novada_proxy_search",
     description:
-      "Structured web search via Google (Novada). Returns JSON with ok, data.results as array of {title, url, snippet}. No HTML parsing needed — results are pre-structured.\n\nWHEN TO USE: Finding pages by topic, factual queries, discovering URLs to then fetch.\nUSE novada_proxy_fetch INSTEAD FOR: Reading a specific URL you already have.\nON FAILURE: If error.code is PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY.",
+      "Search Google and return structured results (title, url, snippet) as JSON. No HTML parsing needed — results are pre-structured.\n\nWHEN TO USE: Finding pages by topic, factual queries, discovering URLs to then fetch.\nUSE novada_proxy_fetch INSTEAD FOR: Reading a specific URL you already have.\nON FAILURE: If error.code is PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -127,13 +127,13 @@ const TOOLS = [
   {
     name: "novada_proxy_extract",
     description:
-      "Extract structured fields (title, price, rating, author, etc.) from any URL via residential proxy. Returns JSON with ok, data.fields as key-value map. Uses Open Graph, JSON-LD, and HTML heuristics.\n\nWHEN TO USE: Product pages, articles, listings where you need specific fields not raw content.\nUSE novada_proxy_fetch INSTEAD IF: You need full page content, not specific fields.\nAUTO-ESCALATION: Set render_fallback:true to automatically retry via real browser (novada_proxy_render) if the proxy fetch fails with TLS_ERROR or bot detection. Costs 5 credits if escalated.\nON FAILURE without render_fallback: If TLS_ERROR or BOT_DETECTION_SUSPECTED → retry with render_fallback:true.\nSCHEMA MODE (LLM extraction): Pass schema:{field_name: \"description\"} instead of fields for arbitrary extraction. Returns cleaned content + extraction prompt — your agent does the extraction (zero additional cost, works with any LLM). Example: schema:{\"price\":\"Current price in USD\",\"warranty\":\"Warranty terms\"}",
+      "Extract structured fields (title, price, rating, author, etc.) from any URL via residential proxy. Returns JSON with ok, data.fields as key-value map. Uses Open Graph, JSON-LD, and HTML heuristics.\n\nWHEN TO USE: Product pages, articles, listings where you need specific fields not raw content.\nUSE novada_proxy_fetch INSTEAD IF: You need full page content, not specific fields.\nAUTO-ESCALATION: Set render_fallback:true to automatically retry via real browser if proxy fetch fails. Costs 5 credits if escalated.\nON FAILURE without render_fallback: If TLS_ERROR or BOT_DETECTION_SUSPECTED → retry with render_fallback:true.\nSCHEMA MODE: Pass schema:{field_name: \"description\"} for LLM-based extraction — returns cleaned content + extraction prompt. See schema property for example.",
     inputSchema: {
       type: "object" as const,
       properties: {
         url:             { type: "string", description: "The URL to extract data from" },
         fields:          { type: "array", items: { type: "string" }, description: "Field names to extract: title, price, currency, description, image, rating, review_count, author, date, url, links, headings, h2, or any JSON-LD/meta field name. Mutually exclusive with schema." },
-        schema:          { type: "object", additionalProperties: { type: "string" }, description: "Schema for LLM-based extraction: {field_name: \"description\"}. When provided, returns cleaned markdown content + extraction prompt instead of heuristic extraction. Mutually exclusive with fields. 1-20 fields, keys must be alphanumeric/underscore." },
+        schema:          { type: "object", additionalProperties: { type: "string" }, description: "Schema for LLM-based extraction: {field_name: \"description\"}. Example: {\"price\":\"Current price in USD\",\"warranty\":\"Warranty terms\"}. Returns cleaned markdown + extraction prompt. Mutually exclusive with fields. 1-20 fields, keys must be alphanumeric/underscore." },
         country:         { type: "string", description: "2-letter country code for geo-targeting (e.g. US, DE, JP)" },
         city:            { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
         session_id:      { type: "string", description: "Reuse same ID to keep the same IP across calls" },
@@ -146,7 +146,7 @@ const TOOLS = [
   {
     name: "novada_proxy_session",
     description:
-      "Specialized wrapper around novada_proxy_fetch with session verification. For basic sticky routing without verification, use novada_proxy_fetch with a session_id parameter instead.\n\nFetch a URL with a sticky session — same residential IP reused across calls with the same session_id. Returns structured JSON. Use verify_sticky:true to confirm the session held.\n\nWHEN TO USE: Multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.\nNOTE: Sticky sessions are best-effort — infrastructure may not guarantee 100% IP consistency. Use verify_sticky:true to confirm.\nNOTE: verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds. Only use it when you need to confirm IP consistency before a multi-step workflow.\nON FAILURE: If SESSION_STICKINESS_FAILED → regenerate session_id or accept best-effort behavior.",
+      "Fetch a URL with sticky-session IP persistence and optional verification. For basic sticky routing without verification, use novada_proxy_fetch with session_id instead.\n\nReuses the same residential IP across calls with the same session_id. Returns structured JSON. Use verify_sticky:true to confirm the session held.\n\nWHEN TO USE: Multi-step workflows where IP consistency matters: login flows, paginated scraping, price monitoring.\nNOTE: Sticky sessions are best-effort — infrastructure may not guarantee 100% IP consistency. Use verify_sticky:true to confirm.\nNOTE: verify_sticky:true makes 3 sequential proxy calls and adds ~15-25 seconds. Only use it when you need to confirm IP consistency before a multi-step workflow.\nON FAILURE: If SESSION_STICKINESS_FAILED → regenerate session_id or accept best-effort behavior.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -154,7 +154,7 @@ const TOOLS = [
         url:           { type: "string", description: "The URL to fetch" },
         country:       { type: "string", description: "2-letter country code" },
         city:          { type: "string", description: "City-level targeting (e.g. newyork, london, tokyo)" },
-        format:        { type: "string", enum: ["markdown", "raw"], default: "markdown" },
+        format:        { type: "string", enum: ["markdown", "raw"], default: "markdown", description: "markdown strips HTML tags; raw returns full HTML" },
         timeout:       { type: "number", default: 60, description: "Timeout in seconds (1-120)" },
         verify_sticky: { type: "boolean", default: false, description: "Make a second httpbin.org/ip call with same session to verify IP consistency" },
       },
@@ -164,7 +164,7 @@ const TOOLS = [
   {
     name: "novada_proxy_map",
     description:
-      "Crawl a URL and return all internal links found on the page. Returns structured JSON with data.internal_urls array. Useful for discovering pages before batch-fetching them.\n\nWHEN TO USE: Before a batch scraping job — call novada_proxy_map first to discover URLs, then novada_proxy_batch_fetch to scrape them.\nUSE novada_proxy_fetch INSTEAD IF: You only need the content of a single specific URL.\nNOTE: This is a shallow map (single page). For deep crawls, call novada_proxy_map iteratively on discovered URLs.",
+      "Crawl a URL and return all internal links found on the page. Returns structured JSON with data.internal_urls array. Useful for discovering pages before batch-fetching them.\n\nWHEN TO USE: Before a batch scraping job — call novada_proxy_map first to discover URLs, then novada_proxy_batch_fetch to scrape them.\nUSE novada_proxy_fetch INSTEAD IF: You only need the content of a single specific URL.\nNOTE: This is a shallow map (single page). For deep crawls, call novada_proxy_map iteratively on discovered URLs.\nON FAILURE: If too few links found, the page may use JavaScript to load navigation — retry the URL with novada_proxy_render first, then extract links from rendered content.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -180,7 +180,7 @@ const TOOLS = [
   {
     name: "novada_proxy_crawl",
     description:
-      "Recursively crawl a website — BFS traversal from a starting URL to configurable depth. Returns all discovered URLs with metadata. Optionally includes page content inline.\n\nWHEN TO USE: Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page (novada_proxy_map is single-page only).\nUSE novada_proxy_map INSTEAD IF: You only need links from ONE page.\nUSE novada_proxy_batch_fetch INSTEAD IF: You already have the URLs and just need content.\nWORKFLOW: crawl(depth=2) → get URL tree → batch_fetch the pages you need.\nNOTE: include_content=false (default) returns URLs only — fast and cheap. Set include_content=true to get page content inline (slower, costs 1 credit per page).\nCACHING: Pages already in cache from prior fetch/map/crawl calls cost 0 credits.",
+      "Crawl a website recursively via BFS from a starting URL to configurable depth. Returns all discovered URLs with metadata. Optionally includes page content inline.\n\nWHEN TO USE: Full-site scraping, sitemap generation, content indexing — when you need MORE than a single page (novada_proxy_map is single-page only).\nUSE novada_proxy_map INSTEAD IF: You only need links from ONE page.\nUSE novada_proxy_batch_fetch INSTEAD IF: You already have the URLs and just need content.\nWORKFLOW: crawl(depth=2) → get URL tree → batch_fetch the pages you need.\nNOTE: include_content=false (default) returns URLs only — fast and cheap. Set include_content=true to get page content inline (slower, costs 1 credit per page).\nCACHING: Pages already in cache from prior fetch/map/crawl calls cost 0 credits.\nON FAILURE: If few pages found, the site may block crawling — try a different country. If timeout, reduce depth or limit.",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -198,7 +198,7 @@ const TOOLS = [
   {
     name: "novada_proxy_research",
     description:
-      "One-shot deep research — searches the web, fetches top results, and returns a structured findings summary (concatenated source previews — your agent should analyze findings[] for deeper synthesis) with sources. No LLM needed — the agent receives pre-researched findings it can analyze further.\n\nWHEN TO USE: Research questions, topic investigation, competitive analysis, fact-finding.\nUSE novada_proxy_search INSTEAD IF: You just need search results (titles + URLs), not full content.\nUSE novada_proxy_fetch INSTEAD IF: You already know which URL to read.\nCHAIN WITH: The findings_summary is a starting point — use novada_proxy_fetch on specific urls[] for deeper reading.\nON FAILURE: If PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY (required for search step).",
+      "Research a topic by searching the web, fetching top results, and returning structured findings with sources. The findings_summary concatenates source previews — your agent should analyze findings[] for deeper synthesis.\n\nWHEN TO USE: Research questions, topic investigation, competitive analysis, fact-finding.\nUSE novada_proxy_search INSTEAD IF: You just need search results (titles + URLs), not full content.\nUSE novada_proxy_fetch INSTEAD IF: You already know which URL to read.\nCHAIN WITH: The findings_summary is a starting point — use novada_proxy_fetch on specific urls[] for deeper reading.\nON FAILURE: If PROVIDER_NOT_CONFIGURED → set NOVADA_API_KEY (required for search step).",
     inputSchema: {
       type: "object" as const,
       properties: {
@@ -213,7 +213,7 @@ const TOOLS = [
   {
     name: "novada_proxy_status",
     description:
-      "Check proxy connectivity and provider health. Returns structured JSON with ok, data.connectivity.status (HEALTHY/DEGRADED/UNAVAILABLE) and data.connectivity.proxy_ip (verified via live proxy call).\n\nWHEN TO USE: Before starting a large scraping workflow, or to diagnose proxy failures.\nNOTE: Live connectivity check — makes one proxy request to httpbin.org/ip on every call.",
+      "Check proxy connectivity and provider health. Returns structured JSON with ok, data.connectivity.status (HEALTHY/DEGRADED/UNAVAILABLE) and data.connectivity.proxy_ip (verified via live proxy call).\n\nWHEN TO USE: Before starting a large scraping workflow, or to diagnose proxy failures.\nNOTE: Live connectivity check — makes one proxy request to httpbin.org/ip on every call.\nUSE novada_proxy_fetch INSTEAD IF: You need to test fetching a specific URL, not general proxy health.\nON FAILURE: If PROVIDER_NOT_CONFIGURED → set proxy credentials env vars. If UNAVAILABLE → check provider dashboard.",
     inputSchema: {
       type: "object" as const,
       properties: {},
