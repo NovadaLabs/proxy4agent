@@ -54,15 +54,23 @@ describe("manager API", () => {
       res.writeHead(404, { "content-type": "application/json" });
       res.end(JSON.stringify({ ok: false }));
     });
-    await new Promise<void>((resolve) => server.listen(0, resolve));
+    await new Promise<void>((resolve, reject) => {
+      server.once("error", reject);
+      server.listen(0, "127.0.0.1", () => {
+        server.off("error", reject);
+        resolve();
+      });
+    });
     const address = server.address();
     if (!address || typeof address === "string") throw new Error("test server did not bind to a port");
     baseUrl = `http://127.0.0.1:${address.port}`;
   });
 
   afterEach(async () => {
-    server.closeIdleConnections();
-    await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    if (server?.listening) {
+      server.closeIdleConnections();
+      await new Promise<void>((resolve, reject) => server.close((error) => error ? reject(error) : resolve()));
+    }
     vi.clearAllMocks();
   });
 
