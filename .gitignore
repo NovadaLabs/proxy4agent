@@ -3,3 +3,13 @@ node_modules/
 *.d.ts.map
 clawhub/.mcpregistry_*
 .mcpregistry_*
+
+# Build output
+packages/*/build/
+build/
+
+# Test results
+test-results/
+
+# OS
+.DS_Store
