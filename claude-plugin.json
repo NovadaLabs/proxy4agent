@@ -1,0 +1,21 @@
+{
+  "schema_version": "v1",
+  "name": "novada-proxy",
+  "display_name": "Novada Proxy",
+  "description": "Residential proxy for AI agents — fetch, crawl, search, extract, render through 2M+ IPs across 195 countries. Bypass Cloudflare/Akamai, geo-target, sticky sessions.",
+  "logo_url": "https://raw.githubusercontent.com/NovadaLabs/proxy4agent/main/docs/logo.png",
+  "contact_email": "support@novada.com",
+  "legal_info_url": "https://github.com/NovadaLabs/proxy4agent/blob/main/LICENSE",
+  "install": {
+    "type": "npm",
+    "package": "novada-proxy-mcp",
+    "command": "npx -y novada-proxy-mcp"
+  },
+  "auth": {
+    "type": "env_vars",
+    "required": ["NOVADA_PROXY_USER", "NOVADA_PROXY_PASS"],
+    "optional": ["NOVADA_API_KEY", "NOVADA_BROWSER_WS", "NOVADA_PROXY_HOST", "NOVADA_PROXY_PORT"]
+  },
+  "tools_count": 10,
+  "categories": ["web-scraping", "proxy", "data-extraction", "research"]
+}

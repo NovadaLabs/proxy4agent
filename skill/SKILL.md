@@ -5,7 +5,7 @@ description: >-
   render through 2M+ IPs. Bypass anti-bot, geo-target 195+ countries.
   Use when: scraping websites, researching topics, extracting structured
   data, or any task that needs web access through a proxy.
-version: 1.7.2
+version: 1.8.2
 author: NovadaLabs
 platform: clawhub
 install:
@@ -33,6 +33,9 @@ trigger:
   - "extract product data"
   - "crawl site"
   - "web search"
+  - "research"
+  - "competitive analysis"
+  - "topic investigation"
 ---
 
 # Novada Proxy — Skill for Claude Code
@@ -83,6 +86,8 @@ Need multiple URLs?
 
 Need to find URLs by topic?    -> novada_proxy_search -> novada_proxy_batch_fetch
 
+Need research on a topic?      -> novada_proxy_research (search + read + summarize)
+
 Need same IP across calls?     -> novada_proxy_session (sticky IP via session_id)
 
 Need to check connectivity?    -> novada_proxy_status
@@ -100,6 +105,7 @@ Need to check connectivity?    -> novada_proxy_status
 | `novada_proxy_session` | Sticky session (same IP across calls) | 1 (3 if verify) | `session_id`, `url`, `verify_sticky` |
 | `novada_proxy_search` | Google search as structured JSON | 1 | `query`, `num` (1-20), `country` |
 | `novada_proxy_render` | Render JS pages via real Chromium [BETA] | 5 | `url`, `format`, `wait_for` (CSS selector) |
+| `novada_proxy_research` | Search + read + summarize on a topic | varies | `query`, `num_sources` (1-10), `country` |
 | `novada_proxy_status` | Check proxy health + version | 1 | _(none)_ |
 
 ## Common Workflows
@@ -145,7 +151,6 @@ novada_proxy_extract(url, fields=["title","price","rating"], render_fallback=tru
 | `TLS_ERROR` | Yes | Retry with different `country`, or use `novada_proxy_render` |
 | `TIMEOUT` | Yes | Increase `timeout` param (max 120s), or retry |
 | `RATE_LIMITED` | Yes | Wait 5s, then retry |
-| `PAGE_NOT_FOUND` | No | Verify URL is correct. Do not retry. |
 | `NETWORK_ERROR` | No | DNS failed. Check URL/domain. |
 | `SESSION_STICKINESS_FAILED` | Yes | Retry with `verify_sticky: true` |
 | `INVALID_INPUT` | No | Fix params per tool's inputSchema |

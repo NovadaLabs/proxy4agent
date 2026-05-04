@@ -6,7 +6,7 @@ startCommand:
   type: stdio
   configSchema:
     type: object
-    description: "Residential proxy MCP server — bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions. Provide at least one proxy provider's credentials."
+    description: "Residential proxy MCP server for AI agents — 10 tools: fetch, crawl, search, extract, render, research, map, batch, session, status. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, multi-provider (Novada, BrightData, Smartproxy, Oxylabs)."
     properties:
       NOVADA_PROXY_USER:
         type: string
