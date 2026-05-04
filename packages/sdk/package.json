@@ -1,0 +1,31 @@
+{
+  "name": "@novada/proxy-sdk",
+  "version": "1.0.0",
+  "description": "Novada Proxy SDK — residential proxy for TypeScript/JavaScript apps",
+  "type": "module",
+  "main": "build/index.js",
+  "types": "build/index.d.ts",
+  "exports": {
+    ".": {
+      "types": "./build/index.d.ts",
+      "import": "./build/index.js"
+    }
+  },
+  "files": ["build/**/*.js", "build/**/*.d.ts", "README.md"],
+  "scripts": {
+    "build": "tsc",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "@novada/proxy-core": "*"
+  },
+  "devDependencies": {
+    "@types/node": "^20.11.24",
+    "typescript": "^5.3.3",
+    "vitest": "^4.1.4"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  },
+  "license": "MIT"
+}
