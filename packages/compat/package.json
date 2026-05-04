@@ -1,0 +1,15 @@
+{
+  "name": "novada-proxy-mcp",
+  "version": "2.0.0",
+  "description": "Novada Proxy — residential proxy MCP server for AI agents. Backward-compatible meta-package.",
+  "type": "module",
+  "dependencies": {
+    "@novada/proxy-mcp": "*",
+    "@novada/proxy-cli": "*"
+  },
+  "bin": {
+    "novada-proxy-mcp": "./node_modules/@novada/proxy-mcp/build/index.js",
+    "novada-proxy": "./node_modules/@novada/proxy-cli/build/cli.js"
+  },
+  "license": "MIT"
+}

@@ -1,95 +1,18 @@
 {
-  "name": "novada-proxy-mcp",
-  "version": "1.8.2",
-  "mcpName": "io.github.NovadaLabs/novada-proxy-mcp",
-  "description": "Novada Proxy — residential proxy MCP server for AI agents. Bypass Cloudflare/Akamai, geo-target 195+ countries, sticky sessions, Google search. Multi-provider: Novada, BrightData, Smartproxy, Oxylabs.",
-  "type": "module",
-  "bin": {
-    "novada-proxy-mcp": "build/index.js",
-    "novada-proxy": "build/cli.js"
-  },
-  "files": [
-    "build/**/*.js",
-    "build/**/*.d.ts",
-    "!build/__tests__",
-    "!build/__tests__/**",
-    "README.md",
-    "CHANGELOG.md",
-    "LICENSE",
-    "smithery.yaml"
+  "name": "novada-proxy-workspace",
+  "private": true,
+  "workspaces": [
+    "packages/core",
+    "packages/mcp",
+    "packages/cli",
+    "packages/compat"
   ],
   "scripts": {
-    "build": "tsc && node --input-type=commonjs -e \"require('fs').chmodSync('build/index.js', '755')\"",
-    "dev": "tsc --watch",
-    "inspector": "npx @modelcontextprotocol/inspector build/index.js",
-    "test": "vitest run",
-    "test:watch": "vitest",
-    "prepublishOnly": "npm run build && npm test"
-  },
-  "keywords": [
-    "mcp",
-    "mcp-server",
-    "model-context-protocol",
-    "proxy",
-    "residential-proxy",
-    "agent-proxy",
-    "ai-agent",
-    "ai-agents",
-    "web-scraping",
-    "web-crawling",
-    "anti-bot",
-    "anti-detection",
-    "cloudflare-bypass",
-    "akamai-bypass",
-    "datadome-bypass",
-    "bot-detection",
-    "geo-targeting",
-    "ip-rotation",
-    "sticky-session",
-    "google-search",
-    "serp",
-    "headless-browser",
-    "browser-automation",
-    "novada",
-    "brightdata",
-    "luminati",
-    "smartproxy",
-    "oxylabs",
-    "iproyal",
-    "puppeteer",
-    "web-fetch",
-    "http-proxy",
-    "socks-proxy",
-    "claude",
-    "claude-code",
-    "cursor",
-    "windsurf",
-    "cline",
-    "openai",
-    "llm-tools"
-  ],
-  "author": "Novada <support@novada.com>",
-  "license": "MIT",
-  "homepage": "https://github.com/NovadaLabs/proxy4agent#readme",
-  "repository": {
-    "type": "git",
-    "url": "https://github.com/NovadaLabs/proxy4agent.git"
-  },
-  "bugs": {
-    "url": "https://github.com/NovadaLabs/proxy4agent/issues"
-  },
-  "engines": {
-    "node": ">=18.0.0"
-  },
-  "dependencies": {
-    "@modelcontextprotocol/sdk": "^1.26.0",
-    "axios": "^1.7.0",
-    "http-proxy-agent": "^7.0.0",
-    "https-proxy-agent": "^9.0.0",
-    "puppeteer-core": "^22.15.0"
+    "build": "npm run build --workspaces --if-present",
+    "test": "npm run test --workspaces --if-present",
+    "clean": "rm -rf packages/*/build"
   },
   "devDependencies": {
-    "@types/node": "^20.11.24",
     "typescript": "^5.3.3",
     "vitest": "^4.1.4"
   }

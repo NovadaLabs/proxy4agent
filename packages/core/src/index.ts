@@ -1,0 +1,83 @@
+// ─── Types ───────────────────────────────────────────────────────────────────
+export type {
+  ProxyErrorCode,
+  QuotaMeta,
+  ProxySuccessResponse,
+  ProxyErrorResponse,
+  ProxyResponse,
+} from "./types.js";
+
+// ─── Config ──────────────────────────────────────────────────────────────────
+export { VERSION, NPM_PACKAGE } from "./config.js";
+
+// ─── Errors ──────────────────────────────────────────────────────────────────
+export { classifyError } from "./errors.js";
+
+// ─── Adapters ────────────────────────────────────────────────────────────────
+export type {
+  ProxyAdapter,
+  ProxyCredentials,
+  ProxyRequestParams,
+  AdapterCapabilities,
+} from "./adapters/index.js";
+export { resolveAdapter, listAdapters } from "./adapters/index.js";
+export type { ResolvedAdapter } from "./adapters/index.js";
+
+// ─── Tools ───────────────────────────────────────────────────────────────────
+export {
+  novadaProxyFetch,
+  validateFetchParams,
+  getCacheTtl,
+  makeCacheKey,
+  clearResponseCache,
+} from "./tools/fetch.js";
+export type { FetchParams } from "./tools/fetch.js";
+
+export { novadaProxyBatchFetch, validateBatchFetchParams } from "./tools/batch.js";
+export type { BatchFetchParams, BatchFetchResult } from "./tools/batch.js";
+
+export { novadaProxySearch, validateSearchParams } from "./tools/search.js";
+export type { SearchParams } from "./tools/search.js";
+
+export { novadaProxySession, validateSessionParams } from "./tools/session.js";
+export type { SessionParams } from "./tools/session.js";
+
+export { novadaProxyStatus } from "./tools/status.js";
+
+export { novadaProxyRender, validateRenderParams } from "./tools/render.js";
+export type { RenderParams } from "./tools/render.js";
+
+export {
+  novadaProxyExtract,
+  validateExtractParams,
+  extractField,
+  deepFind,
+  shouldEscalateToRender,
+} from "./tools/extract.js";
+export type { ExtractParams } from "./tools/extract.js";
+
+export { novadaProxyMap, validateMapParams } from "./tools/map.js";
+export type { MapParams } from "./tools/map.js";
+
+export { novadaProxyCrawl, validateCrawlParams } from "./tools/crawl.js";
+export type { CrawlParams, CrawlPageResult } from "./tools/crawl.js";
+
+export { novadaProxyResearch, validateResearchParams } from "./tools/research.js";
+export type { ResearchParams } from "./tools/research.js";
+
+// ─── Utils ───────────────────────────────────────────────────────────────────
+export {
+  unicodeSafeTruncate,
+  decodeHtmlEntities,
+  htmlToMarkdown,
+  htmlToText,
+  stripNoiseElements,
+  countHtmlTags,
+  contentDensity,
+} from "./utils.js";
+
+// ─── Validation constants ─────────────────────────────────────────────────────
+export { SAFE_COUNTRY, SAFE_CITY, SAFE_SESSION_ID, QUOTA_NOTE } from "./validation.js";
+
+// ─── Redaction ───────────────────────────────────────────────────────────────
+export { redactCredentials } from "./redact.js";
