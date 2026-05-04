@@ -1,6 +1,6 @@
 {
   "name": "@novada/proxy-sdk",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Novada Proxy SDK — residential proxy for TypeScript/JavaScript apps",
   "type": "module",
   "main": "build/index.js",

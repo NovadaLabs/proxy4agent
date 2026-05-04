@@ -1,6 +1,6 @@
 {
   "name": "@novada/proxy-mcp",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Novada Proxy MCP server — residential proxy tools for AI agents",
   "type": "module",
   "main": "build/index.js",

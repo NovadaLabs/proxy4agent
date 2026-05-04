@@ -1,6 +1,6 @@
 {
   "name": "@novada/proxy-cli",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Novada Proxy CLI — residential proxy commands for terminal",
   "type": "module",
   "main": "build/cli.js",

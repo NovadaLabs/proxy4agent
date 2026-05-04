@@ -1,6 +1,6 @@
 {
   "name": "@novada/proxy-manager",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Novada Proxy Manager - local web dashboard for managing proxy connections",
   "type": "module",
   "main": "build/server.js",

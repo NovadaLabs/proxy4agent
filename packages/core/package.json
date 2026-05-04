@@ -1,6 +1,6 @@
 {
   "name": "@novada/proxy-core",
-  "version": "1.0.0",
+  "version": "0.0.1",
   "description": "Core proxy engine — adapters, tools, types for Novada Proxy",
   "type": "module",
   "main": "build/index.js",
